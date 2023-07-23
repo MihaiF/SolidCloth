@@ -103,13 +103,7 @@ Engine::Engine()
 	mouseTracking = false;
 	// TODO: append renderer suffix with preprocessor or std::string
 #if (RENDERER == OPENGL)
-	szTitle = "GameEngine - OpenGL";
-#elif (RENDERER == OPENGLES)
-	szTitle = L"GameEngine - OpenGL ES";
-#elif (RENDERER == DIRECTX)
-	zTitle = L"GameEngine - Direct3D9";
-#else //if (RENDERER == GDIPLUS)
-	szTitle = L"GameEngine - GDI+";
+	szTitle = "SolidCloth demo - OpenGL";
 #endif
 #endif // WIN32
 	graphics = new Graphics2D();

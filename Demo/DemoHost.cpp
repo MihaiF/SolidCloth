@@ -1,4 +1,14 @@
 #include "DemoHost.h"
+#include "Graphics2D/Graphics2D.h"
+#include "Graphics3D/Graphics3D.h"
+
+DemoHost::DemoHost()
+{
+	canResize = true;
+	is3D = true;
+	enablePicking = true;
+	graphics->SetBgColor(0xff9f9f9f);
+}
 
 void DemoHost::OnCreate()
 {
@@ -8,7 +18,12 @@ void DemoHost::OnCreate()
 		graphics3D->SetLightPos(Vector3(400, 800, 0));
 	}
 
-	mClothDemo.Create(ClothDemo::CLOTH_DEMO_SPHERE);
+	Reset();
+}
+
+void DemoHost::Reset()
+{
+	mClothDemo.Create(mDemoType);
 	mClothDemo.Init();
 }
 
@@ -35,6 +50,11 @@ void DemoHost::OnUpdate(float dt)
 	}
 }
 
+void DemoHost::OnDraw3D()
+{
+	mClothDemo.Draw(graphics3D, mShowDebug, mDebugDrawFlags);
+}
+
 void DemoHost::OnDrawUI()
 {
 	if (ImGui::Button("Simulate"))
@@ -46,6 +66,7 @@ void DemoHost::OnDrawUI()
 	{
 		Reset();
 	}
+	ImGui::Combo("Demo type", &mDemoType, "Default\0Sphere\0Capsule\0Mesh\0SDF\0");
 	ImGui::Checkbox("Step by step", &stepByStep);
 	ImGui::SliderFloat("Time step", &timeStep, 0.001f, 0.05f);
 	ImGui::Checkbox("Show debug", &mShowDebug);
@@ -93,6 +114,23 @@ void DemoHost::OnDrawUI()
 
 	mClothDemo.DrawUI();
 }
+
+void DemoHost::OnMouseMove(int x, int y)
+{
+	mClothDemo.OnMouseMove(x, y);
+}
+
+void DemoHost::OnMouseDown(int x, int y, MouseButton mb)
+{
+	if (mb == MouseButton::MOUSE_LEFT)
+		mClothDemo.OnMouseDown(x, y);
+}
+
+void DemoHost::OnMouseUp(int x, int y, MouseButton mb)
+{
+	mClothDemo.OnMouseUp(x, y);
+}
+
 
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {

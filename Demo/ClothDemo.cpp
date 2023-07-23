@@ -26,7 +26,6 @@ void ClothDemo::Create(int type)
 	if (!mCheckerTexture->LoadTexture("../Res/checker.bmp"))
 		Printf("Failed to load texture\n");
 
-	mDemoType = type;
 	Aabb3 walls(Vector3(-60), Vector3(60));
 	mCloth.GetModel().ClearCollidables();
 	mCloth.GetModel().AddCollidable(std::shared_ptr<Collidable>(new Walls(walls)));
@@ -61,15 +60,7 @@ void ClothDemo::Create(int type)
 	else if (type == CLOTH_DEMO_MESH)
 	{
 		bool ret = false;
-		if (mClothAsset == CLOTH_ASSET_KATJA)
-		{
-			ret = LoadMesh("../Models/katja.obj", mMesh, Vector3(), 0.8f);
-		}
-		else if (mClothAsset == CLOTH_ASSET_MD)
-		{
-			ret = LoadMesh("../Models/avatar2.ply", mMesh, Vector3(0, 0, 0), 0.1f, false);
-		}
-		else if (mClothAsset == CLOTH_ASSET_BUDDHA)
+		if (mClothAsset == CLOTH_ASSET_BUDDHA)
 		{
 			ret = LoadMesh("../Models/buddha.obj", mMesh, Vector3(0, -5, 0), 2.f);
 		}
@@ -79,7 +70,7 @@ void ClothDemo::Create(int type)
 		}
 		else if (mClothAsset == CLOTH_ASSET_SPHERE)
 		{
-			ret = LoadMesh("../Models/sfera.obj", mMesh, Vector3(0, -30, 0), 20.f);
+			ret = LoadMesh("../Models/sphere.obj", mMesh, Vector3(0, -30, 0), 20.f);
 		}
 		else // default
 		{
@@ -112,24 +103,6 @@ void ClothDemo::Init()
 		if (mClothAsset == CLOTH_ASSET_BUDDHA)
 			offset.Y() += 35;
 		mCloth.Init(mDivisions, mDivisions, 80.f / mDivisions, offset, mHorizontal, mAttached);
-	}
-	else
-	{
-		Mesh mesh;
-		bool ret = false;
-		float dy = 0;
-		if (mClothAsset == CLOTH_ASSET_KATJA)
-			ret = LoadMesh("../Models/dress.obj", mesh, Vector3(), 0.8f);
-		else if (mClothAsset == CLOTH_ASSET_MD)
-		{
-			ret = LoadMesh("../Models/md1.dae", mesh, Vector3(0, 0.3f, -0.4f), 0.1f);
-		}
-		else if (mClothAsset == CLOTH_ASSET_PATCH)
-			ret = LoadMesh("../Models/cloth1.dae", mesh, Vector3(0, 35, 0), 1.f);
-		if (ret)
-		{
-			mCloth.Init(mesh, Vector3(0, dy, 0), mAttached);
-		}
 	}
 }
 
@@ -196,7 +169,6 @@ void ClothDemo::DrawUI()
 #ifdef USE_IMGUI
 	if (ImGui::CollapsingHeader("Cloth"))
 	{
-		//ImGui::Combo("Demo type", &mDemoType, "Default\0Sphere\0Mesh\0Self");
 		ImGui::Checkbox("Wireframe on shaded", &mWireframeCloth);
 		ImGui::InputInt("Divisions", &mDivisions);
 

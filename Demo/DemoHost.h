@@ -1,35 +1,22 @@
 #pragma once
 
 #include "ClothDemo.h"
-#include "Graphics2D/Graphics2D.h"
-#include "Graphics3D/Graphics3D.h"
-
 
 class DemoHost : public Engine
 {
 public:
-	DemoHost()
-	{
-		canResize = true;
-		is3D = true;
-		graphics->SetBgColor(0xff9f9f9f);
-	}
+	DemoHost();
 
 	void OnCreate() override;
-
 	void OnUpdate(float dt) override;
-
-	void OnDraw3D() override
-	{
-		mClothDemo.Draw(graphics3D, mShowDebug, mDebugDrawFlags);
-	}
-
+	void OnDraw3D() override;
 	void OnDrawUI() override;
+	void OnMouseMove(int x, int y) override;
+	void OnMouseDown(int x, int y, MouseButton mb) override;
+	void OnMouseUp(int x, int y, MouseButton mb) override;
 
-	void Reset()
-	{
-		mClothDemo.Init();
-	}
+private:
+	void Reset();
 
 private:
 	ClothDemo mClothDemo;
@@ -38,4 +25,5 @@ private:
 	float timeStep = 0.016f;
 	bool mShowDebug = false;
 	int mDebugDrawFlags = 0;
+	int mDemoType = 0;
 };

@@ -7,12 +7,8 @@
 #include <Engine/Utils.h>
 #include <Math/Utils.h>
 
-// TODO: all headers should go into the PCH
-
-#define DIRECTX		0
 #define OPENGL		1
 #define OPENGLES	2
-#define GDIPLUS		3
 
 #if defined(ANDROID_NDK) || defined(GLES)
 #	define RENDERER OPENGLES

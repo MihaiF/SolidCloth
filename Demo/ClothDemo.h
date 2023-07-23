@@ -2,8 +2,6 @@
 #define CLOTH_DEMO_H
 
 #include "Physics/ClothPatch.h"
-#include "Graphics3D/Camera.h"
-#include "Geometry/Mesh.h"
 #include "Geometry/SDF.h"
 #include "Physics/Common.h"
 
@@ -14,8 +12,6 @@ enum DebugDrawFlags
 	DDF_PARTICLES = 4,
 	DDF_STRAIN = 8,
 	DDF_LINKS = 16,
-	//DDF_SELF_TRIS = 32,
-	//DDF_SELF_EDGES = 64,
 	DDF_TREE = 128,
 	DDF_TRI_CONTACTS = 256,
 	DDF_TREE_SELF = 512,
@@ -29,7 +25,6 @@ class ClothDemo
 public:
 	ClothDemo();
 	void Create(int type);
-	bool LoadFromXml(XMLElement* xCloth);
 	void Init();
 	void Draw(Graphics3D* graphics3D, bool showDebug, int debugDrawFlags);
 	void DrawUI();
@@ -51,9 +46,6 @@ public:
 	enum ClothAsset
 	{
 		CLOTH_ASSET_DEFAULT,
-		CLOTH_ASSET_PATCH,
-		CLOTH_ASSET_KATJA,
-		CLOTH_ASSET_MD,
 		CLOTH_ASSET_BUNNY, 
 		CLOTH_ASSET_BUDDHA,
 		CLOTH_ASSET_DRAGON,
@@ -62,10 +54,10 @@ public:
 
 private:
 	Physics::ClothPatch mCloth;
+	
 	int mDivisions;
 	bool mHorizontal;
 	bool mAttached;
-	int mDemoType;
 	int mClothAsset;
 	Geometry::Mesh mMesh;
 	Geometry::Mesh mMeshCopy;
