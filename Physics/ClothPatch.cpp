@@ -6,7 +6,7 @@ using namespace Geometry;
 
 namespace Physics
 {
-	ClothPatch::ClothPatch() : mBicubic(false), mNumSteps(1), mMesh(new Mesh())
+	ClothPatch::ClothPatch() : mNumSteps(1), mMesh(new Mesh())
 	{ 
 		mModel = new ClothModelPBD(this);
 		mCollisionHandler.SetClothModel(mModel);
@@ -15,7 +15,6 @@ namespace Physics
 	ClothPatch& ClothPatch::operator =(const ClothPatch& other)
 	{
 		isQuadMesh = other.isQuadMesh;
-		mBicubic = other.mBicubic;
 		mMesh = other.mMesh;
 		mPosition = other.mPosition;
 		mMethod = other.mMethod;

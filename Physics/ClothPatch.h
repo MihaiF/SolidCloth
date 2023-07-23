@@ -37,8 +37,6 @@ namespace Physics
 		const Geometry::Mesh& GetMesh() const { return *mMesh; }
 		const ClothModel& GetModel() const { return *mModel; }
 		ClothModel& GetModel() { return *mModel; }
-		bool GetBicubic() const { return mBicubic; }
-		void SetBicubic(bool val) { mBicubic = val; }
 		float GetMaxMass() const { return mMaxMass; }
 		void SetPosition(const Math::Vector3& v) { mPosition = v; }
 		void SetMethod(MethodType val);
@@ -49,7 +47,6 @@ namespace Physics
 
 	private:
 		bool isQuadMesh;
-		bool mBicubic;
 		ClothModel* mModel;
 		std::shared_ptr<Geometry::Mesh> mMesh;
 		float mMaxMass;
