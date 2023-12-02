@@ -1,4 +1,5 @@
 #include "Collision3D.h"
+#include "Engine/Utils.h"
 
 using Math::Vector3;
 
@@ -6,9 +7,7 @@ using Math::Vector3;
 
 namespace Geometry
 {
-	// closest points between segments (p1, q1) and (p2, q2)
-	// returns squared distance
-	float ClosestPtSegmSegm(const Vector3& p1, const Vector3& q1, const Vector3& p2, const Vector3& q2,
+	int ClosestPtSegmSegm(const Vector3& p1, const Vector3& q1, const Vector3& p2, const Vector3& q2,
 		float& s, float& t, Vector3& c1, Vector3& c2)
 	{
 		Vector3 d1 = q1 - p1;
@@ -29,15 +28,18 @@ namespace Geometry
 		else
 			s = 0.f;
 
+		int region = ER_EDGE2_INTERIOR;
 		t = (b * s + f) / e;
 
 		if (t < 0.f)
 		{
+			region = ER_VERTEX_P2;
 			t = 0.f;
 			s = Math::clamp(-c / a, 0.f, 1.f);
 		}
 		else if (t > 1.f)
 		{
+			region = ER_VERTEX_Q2;
 			t = 1.f;
 			s = Math::clamp((b - c) / a, 0.f, 1.f);
 		}
@@ -45,12 +47,13 @@ namespace Geometry
 		// epilogue
 		c1 = p1 + s * d1;
 		c2 = p2 + t * d2;
-		return (c1 - c2).LengthSquared();
+		
+		return region;
 	}
 
 	// closest point on triangle (a, b, c) to vertex p
 	// outputs the closest point and its barycentric coordinates in bar
-	inline Vector3 ClosestPtPointTriangle(const Vector3& p, const Vector3& a, const Vector3& b, const Vector3& c, Math::BarycentricCoords& bar)
+	int ClosestPtPointTriangle(Vector3 p, Vector3 a, Vector3 b, Vector3 c, Vector3& closestPt, Vector3& bar)
 	{
 		bar.x = bar.y = bar.z = 0.f;
 
@@ -63,7 +66,8 @@ namespace Geometry
 		if (d1 <= 0.f && d2 <= 0.f)
 		{
 			bar.x = 1.f;
-			return a;
+			closestPt = a;
+			return TR_VERTEX_A;
 		}
 
 		// Check if P in vertex region outside B
@@ -73,7 +77,8 @@ namespace Geometry
 		if (d3 >= 0.f && d4 <= d3)
 		{
 			bar.y = 1.f;
-			return b;
+			closestPt = b;
+			return TR_VERTEX_B;
 		}
 
 		// Check if P in edge region of AB, if so return projection
@@ -82,7 +87,8 @@ namespace Geometry
 		{
 			bar.y = d1 / (d1 - d3);
 			bar.x = 1 - bar.y;
-			return a + bar.y * ab;
+			closestPt = a + bar.y * ab;
+			return TR_EDGE_AB;
 		}
 
 		// Check if P in vertex region outside C
@@ -92,7 +98,8 @@ namespace Geometry
 		if (d6 >= 0.f && d5 <= d6)
 		{
 			bar.z = 1.f;
-			return c;
+			closestPt = c;
+			return TR_VERTEX_C;
 		}
 
 		// Check if P in edge region of AC
@@ -101,7 +108,8 @@ namespace Geometry
 		{
 			bar.z = d2 / (d2 - d6);
 			bar.x = 1 - bar.z;
-			return a + bar.z * ac;
+			closestPt = a + bar.z * ac;
+			return TR_EDGE_AC;
 		}
 
 		// Check if P in edge region of BC
@@ -112,7 +120,8 @@ namespace Geometry
 		{
 			bar.z = d43 / (d43 + d56);
 			bar.y = 1 - bar.z;
-			return b + bar.z * (c - b);
+			closestPt = b + bar.z * (c - b);
+			return TR_EDGE_BC;
 		}
 
 		// P inside face region
@@ -120,7 +129,9 @@ namespace Geometry
 		bar.y = vb * denom;
 		bar.z = vc * denom;
 		bar.x = 1.f - bar.y - bar.z;
-		return a + ab * bar.y + ac * bar.z;
+		closestPt = a + ab * bar.y + ac * bar.z;
+		ASSERT(bar.x > 0 && bar.y > 0 && bar.z > 0);
+		return TR_FACE_INTERIOR;
 	}
 
 	float ClosestPtSegmTriangle(const Vector3& p, const Vector3& q, const Vector3& a, const Vector3& b, const Vector3& c, float& param, 
@@ -130,8 +141,8 @@ namespace Geometry
 
 		float s, t;
 		Vector3 c1, c2;
-		float dist1 = ClosestPtSegmSegm(p, q, a, b, s, t, c1, c2);
-		dist1 = sqrt(dist1);
+		ClosestPtSegmSegm(p, q, a, b, s, t, c1, c2);
+		float dist1 = (c1 - c2).Length();
 		if (dist1 < minDist)
 		{
 			minDist = dist1;
@@ -141,8 +152,8 @@ namespace Geometry
 			bar = { 1 - t, t, 0 }; //?
 		}
 
-		float dist2 = ClosestPtSegmSegm(p, q, b, c, s, t, c1, c2);
-		dist2 = sqrt(dist2);
+		ClosestPtSegmSegm(p, q, b, c, s, t, c1, c2);
+		float dist2 = (c1 - c2).Length();
 		if (dist2 < minDist)
 		{
 			minDist = dist2;
@@ -152,8 +163,8 @@ namespace Geometry
 			bar = { 0, 1 - t, t }; //?
 		}
 
-		float dist3 = ClosestPtSegmSegm(p, q, c, a, s, t, c1, c2);
-		dist3 = sqrt(dist3);
+		ClosestPtSegmSegm(p, q, c, a, s, t, c1, c2);
+		float dist3 = (c1 - c2).Length();
 		if (dist3 < minDist)
 		{
 			minDist = dist3;
@@ -163,8 +174,9 @@ namespace Geometry
 			bar = { t, 0 , 1 - t }; //?
 		}
 
-		Math::BarycentricCoords coords;
-		Vector3 cp4 = ClosestPtPointTriangle(p, a, b, c, coords);
+		Vector3 coords;
+		Vector3 cp4;
+		ClosestPtPointTriangle(p, a, b, c, cp4, coords);
 		float dist4 = (p - cp4).Length();
 		if (dist4 < minDist)
 		{
@@ -175,7 +187,8 @@ namespace Geometry
 			bar = coords;
 		}
 
-		Vector3 cp5 = ClosestPtPointTriangle(q, a, b, c, bar);
+		Vector3 cp5;
+		ClosestPtPointTriangle(q, a, b, c, cp5, bar);
 		float dist5 = (q - cp5).Length();
 		if (dist5 < minDist)
 		{
@@ -192,7 +205,8 @@ namespace Geometry
 	bool IntersectSphereTriangle(const Vector3& v, float radTol, const Vector3& v1, const Vector3& v2, const Vector3& v3,
 		Vector3& normal, Vector3& pos, float& dist, Math::BarycentricCoords& coords)
 	{
-		Vector3 p = ClosestPtPointTriangle(v, v1, v2, v3, coords);
+		Vector3 p;
+		ClosestPtPointTriangle(v, v1, v2, v3, p, coords);
 		Vector3 delta = v - p;
 		float dSqr = delta.LengthSquared();
 		dist = dSqr;
@@ -209,7 +223,8 @@ namespace Geometry
 	bool IntersectSphereTriangle1(const Vector3& v, float radTol, const Vector3& v1, const Vector3& v2, const Vector3& v3, const Vector3& ref,
 		Vector3& normal, Vector3& pos, float& dist, Math::BarycentricCoords& coords)
 	{
-		Vector3 p = ClosestPtPointTriangle(v, v1, v2, v3, coords);
+		Vector3 p;
+		ClosestPtPointTriangle(v, v1, v2, v3, p, coords);
 		Vector3 delta = v - p;
 
 		Vector3 dir = ref - p;
@@ -368,7 +383,8 @@ namespace Geometry
 		}
 
 		// TODO: use the fact that it's in the same plane and/or its barycentric coordinates
-		Vector3 q = ClosestPtPointTriangle(p, v1, v2, v3, coords);
+		Vector3 q;
+		ClosestPtPointTriangle(p, v1, v2, v3, q, coords);
 		if (IntersectRaySphere(q, -v, c, radius, t, p) && t <= 1.f)
 			//Vector3 r = ClosestPtSegm(q, c, c + v, t);
 			//if ((q - r).LengthSquared() < radius * radius)

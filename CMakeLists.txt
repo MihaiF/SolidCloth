@@ -20,6 +20,8 @@ set(SOURCES
 	Geometry/MarchingCubes.cpp
 	Geometry/AabbTree.cpp
 	Geometry/ClosestPointOnMesh.cpp
+	Geometry/ClosestPointsBetweenMeshes.cpp
+	Geometry/VoronoiRegions.cpp
 	Math/Quaternion.cpp
 	Graphics2D/TextureGL.cpp
 	Graphics2D/Graphics2DGLS.cpp

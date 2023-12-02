@@ -6,16 +6,22 @@
 namespace Physics
 {
 	class ClothModel;
+	class CollisionWorld;
 
 	class ClothCollisionHandler
 	{
 	public:
-		ClothCollisionHandler() : mModel(nullptr) {}
-		void SetClothModel(ClothModel* model) { mModel = model; }
+		ClothCollisionHandler(const CollisionWorld& world);
+		void SetClothModel(ClothModel* model); // TODO: should be part of constructor
 		void DetectAndHandle(float h);
+		void Update();
 
 		void SolveContactsVelocity(float h);
-		void SolveContactsPosition(float h);
+		float SolveContactsPosition(float h);
+		float SolveEdgeContacts();
+		float SolveTriContacts();
+		float SolveSelfTrisPosition(float h);
+		float SolveSelfEdgesPosition(float h);
 
 		void CheckContactsPosition();
 
@@ -25,6 +31,7 @@ namespace Physics
 
 	private:
 		ClothModel* mModel;
+		const CollisionWorld& mCollWorld;
 
 		std::vector<int> mSetAssociations;
 		std::vector<std::set<int>> mSetList;
@@ -35,5 +42,13 @@ namespace Physics
 		const int numSelfCollIterations = 2;
 		const int numVelocityIterations = 20;
 		const int numPositionIterations = 0;
+
+		// TODO: supplant by contact list
+		std::vector<float> mVertexLambda;
+		std::vector<float> mVertexLambdaF;
+		std::vector<float> mEdgeLambda;
+		std::vector<float> mEdgeLambdaF;
+		std::vector<float> mTriLambda;
+		std::vector<float> mTriLambdaF;
 	};
 }

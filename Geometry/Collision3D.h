@@ -9,6 +9,33 @@
 
 namespace Geometry
 {
+	enum CollFlags
+	{
+		CF_VERTICES = 1,
+		CF_TRIANGLES = 2,
+		CF_SELF = 4,
+		CF_WALLS = 8,
+		CF_EDGES = 16,
+	};
+
+	enum TriangleRegion
+	{
+		TR_VERTEX_A,
+		TR_VERTEX_B,
+		TR_VERTEX_C,
+		TR_EDGE_AB,
+		TR_EDGE_AC,
+		TR_EDGE_BC,
+		TR_FACE_INTERIOR,
+	};
+
+	enum EdgeRegion
+	{
+		ER_VERTEX_P2,
+		ER_VERTEX_Q2,
+		ER_EDGE2_INTERIOR,
+	};
+
 	// I think this does not do projection, so it requires that p is in the (a, b, c) plane
 	inline Math::BarycentricCoords Barycentric(const Math::Vector3& a, const Math::Vector3& b, const Math::Vector3& c, const Math::Vector3& p)
 	{
@@ -113,12 +140,12 @@ namespace Geometry
 
 
 	// closest points between segments (p1, q1) and (p2, q2)
-	// returns squared distance
-	float ClosestPtSegmSegm(const Math::Vector3& p1, const Math::Vector3& q1, const Math::Vector3& p2, const Math::Vector3& q2, float& s, float& t, Math::Vector3& c1, Math::Vector3& c2);
+	// returns region (endpoint or interior)
+	int ClosestPtSegmSegm(const Math::Vector3& p1, const Math::Vector3& q1, const Math::Vector3& p2, const Math::Vector3& q2, float& s, float& t, Math::Vector3& c1, Math::Vector3& c2);
 
 	// closest point on triangle (a, b, c) to vertex p
 	// outputs the closest point and its barycentric coordinates in bar
-	Math::Vector3 ClosestPtPointTriangle(const Math::Vector3& p, const Math::Vector3& a, const Math::Vector3& b, const Math::Vector3& c, Math::BarycentricCoords& bar);
+	int ClosestPtPointTriangle(Math::Vector3 p, Math::Vector3 a, Math::Vector3 b, Math::Vector3 c, Math::Vector3& closestPt, Math::Vector3& bar);
 
 	float ClosestPtSegmTriangle(const Math::Vector3& p, const Math::Vector3& q, const Math::Vector3& a, const Math::Vector3& b, const Math::Vector3& c, float& param, Math::BarycentricCoords& bar,
 		Math::Vector3& closest1, Math::Vector3& closest2);

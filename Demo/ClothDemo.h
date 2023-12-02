@@ -4,6 +4,7 @@
 #include "Physics/ClothPatch.h"
 #include "Geometry/SDF.h"
 #include "Physics/Common.h"
+#include "Physics/CollisionWorld.h"
 
 enum DebugDrawFlags
 {
@@ -53,11 +54,13 @@ public:
 	};
 
 private:
+	Physics::CollisionWorld mCollWorld;
 	Physics::ClothPatch mCloth;
 	
 	int mDivisions;
 	bool mHorizontal;
 	bool mAttached;
+	int mDemoType;
 	int mClothAsset;
 	Geometry::Mesh mMesh;
 	Geometry::Mesh mMeshCopy;

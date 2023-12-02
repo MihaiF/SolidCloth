@@ -3,6 +3,7 @@
 #include "Geometry/AabbTree.h"
 #include <Engine/Profiler.h>
 #include "ClothModel.h"
+#include "CollisionWorld.h"
 
 #include <stack>
 
@@ -20,40 +21,55 @@ namespace Physics
 			int flags = ATF_VERTICES;
 			if (mCollFlags & CF_TRIANGLES)
 				flags |= ATF_TRIANGLES;
+			if (mCollFlags & CF_SELF)
+				flags |= ATF_TRIANGLES | ATF_EDGES;
 			ComputeTree(flags, 10, mThickness);
 		}
 
-		ExternalCollisions();
+		// prepare buffers for caching closest feature
+		if (mCacheVT.size() != mParticles.size())
+			mCacheVT.resize(mParticles.size(), -1);
+		if (mCacheTV.size() != mTriangles.size())
+			mCacheTV.resize(mTriangles.size(), -1);
+		if (mCacheEE.size() != mEdges.size())
+			mCacheEE.resize(mEdges.size(), -1);
+
+		if (!mSolveSDFContacts)
+			ExternalCollisions();
 	}
 
 	void ClothModel::ExternalCollisions()
 	{
+		UpdateMesh(mOwnerPatch->GetMesh(), true, Vector3(), true);
+
 		mTriContacts.clear();
-		for (size_t i = 0; i < mCollidables.size(); i++)
+		mEdgeContacts.clear();
+		for (size_t i = 0; i < mOwnerPatch->GetCollWorld().GetNumCollidables(); i++)
 		{
-			if ((mCollidables[i]->mType == CT_WALLS) && (mCollFlags & CF_WALLS))
+			const Collidable* collider = mOwnerPatch->GetCollWorld().GetCollidable(i);
+			if ((collider->mType == CT_WALLS) && (mCollFlags & CF_WALLS))
 			{
-				const Walls* walls = (const Walls*)mCollidables[i].get();
+				const Walls* walls = (const Walls*)collider;
 				WallCollisions(walls->mBox);
 			}
-			else if (mCollidables[i]->mType == CT_SPHERE)
+			else if (collider->mType == CT_SPHERE)
 			{
-				const Sphere* sph = (const Sphere*)mCollidables[i].get();
+				const Sphere* sph = (const Sphere*)collider;
 				SDFCollisions(SphereSDF(*sph));
 			}
-			else if (mCollidables[i]->mType == CT_CAPSULE)
+			else if (collider->mType == CT_CAPSULE)
 			{
-				const Capsule* cap = (const Capsule*)mCollidables[i].get();
+				const Capsule* cap = (const Capsule*)collider;
 				SDFCollisions(CapsuleSDF(*cap));
 			}
-			else if (mCollidables[i]->mType == CT_SDF)
+			else if (collider->mType == CT_SDF)
 			{
-				const CollisionSDF* sdf = (const CollisionSDF*)mCollidables[i].get();
+				const CollisionSDF* sdf = (const CollisionSDF*)collider;
 				SDFCollisions(GridSDF(*sdf->sdf));
 			}
-			else if (mCollidables[i]->mType == CT_MESH)
+			else if (collider->mType == CT_MESH)
 			{
-				CollisionMesh* mesh = (CollisionMesh*)mCollidables[i].get();
+				CollisionMesh* mesh = (CollisionMesh*)collider;
 				if (mesh->tree == NULL || mesh->invalidate)
 				{
 					// Compute the mesh AABB tree (if needed)
@@ -63,11 +79,79 @@ namespace Physics
 					int flags = ATF_TRIANGLES;
 					if (mCollFlags & CF_TRIANGLES)
 						flags |= ATF_VERTICES;
+					if (mCollFlags & CF_EDGES)
+						flags |= ATF_EDGES;
 					mesh->tree = ComputeMeshTree(*mesh->mesh, flags, 10, mThickness);
 				}
 				
 				//SDFCollisions(MeshSDF(*mesh->mesh, mesh->tree));
-				MeshCollisions(*mesh, Vector3());
+				MeshCollisions(*mesh);
+			}
+		}
+	}
+
+	void ClothModel::MeshCollisions(const CollisionMesh& collMesh)
+	{
+		std::vector<float> tvs(mParticles.size());
+		float maxTv = 0;
+		for (int i = 0; i < mParticles.size(); i++)
+		{
+			tvs[i] = (mParticles[i].pos - mParticles[i].prev).Length();
+			if (tvs[i] > maxTv)
+				maxTv = tvs[i];
+		}
+
+		float radTol = mThickness + std::max(mTolerance, maxTv * 1.1f);
+		mClosestPoints.SetParams(mCollFlags);
+		mClosestPoints.ClosestPoints(mOwnerPatch->GetMesh(), *collMesh.mesh, mTree, collMesh.tree, radTol, true);
+		//mClosestPoints.ClosestPoints(mOwnerPatch->GetMesh(), *collMesh.mesh, collMesh.tree, true);
+
+		for (int j = 0; j < mClosestPoints.mVertexInfos.size(); j++)
+		{
+			// compute the threshold
+			float radTol = mThickness + std::max(mTolerance, tvs[j] * 1.1f);
+			
+			float dist = mClosestPoints.mVertexInfos[j].distance;
+			if (dist < radTol && dist >= 0)
+			{
+				AddContact(j, mClosestPoints.mVertexInfos[j].closestPtMesh, mClosestPoints.mVertexInfos[j].normal, Vector3());
+			}
+		}
+
+		for (int j = 0; j < mClosestPoints.mTriangleInfos.size(); j++)
+		{
+			int i1 = mTriangles[j].i1;
+			int i2 = mTriangles[j].i2;
+			int i3 = mTriangles[j].i3;
+			
+			// compute the threshold
+			float tv = std::max(tvs[i1], std::max(tvs[i2], tvs[i3]));
+			float radTol = mThickness + std::max(mTolerance, tv * 1.1f);
+			
+			float dist = mClosestPoints.mTriangleInfos[j].distance;
+			if (dist < radTol && dist >= 0)
+			{
+				// this is the j-th triangle
+				AddTriContact(i1, i2, i3, mClosestPoints.mTriangleInfos[j].closestPtMesh, 
+					mClosestPoints.mTriangleInfos[j].normal, mClosestPoints.mTriangleInfos[j].baryCoords, Vector3());
+			}
+		}
+
+		for (int j = 0; j < mClosestPoints.mEdgeInfos.size(); j++)
+		{
+			int i1 = mEdges[j].i1;
+			int i2 = mEdges[j].i2;
+
+			// compute the threshold
+			float tv = std::max(tvs[i1], tvs[i2]);
+			float radTol = mThickness + std::max(mTolerance, tv * 1.1f);
+
+			float dist = mClosestPoints.mEdgeInfos[j].distance;
+			if (dist < radTol && dist >= 0)
+			{
+				// this is the j-th edge
+				AddEdgeContact(i1, i2, mClosestPoints.mEdgeInfos[j].closestPtMesh, mClosestPoints.mEdgeInfos[j].normal,
+					mClosestPoints.mEdgeInfos[j].coordsSegm, Vector3());
 			}
 		}
 	}
@@ -80,17 +164,17 @@ namespace Physics
 		{
 			const Particle& particle = mParticles[i];
 			if (particle.pos.Y() - r <= walls.min.Y())
-				AddContact(i, Vector3(particle.pos.X(), walls.min.Y(), particle.pos.Z()), Vector3(0, 1, 0));
+				AddContact(i, Vector3(particle.pos.X(), walls.min.Y(), particle.pos.Z()), Vector3(0, 1, 0), Vector3::Zero());
 			//if (particle.pos.Y() + r >= WALL_TOP)
 			//	AddContact((ParticleIdx)i, Vector3(particle.pos.X(), WALL_TOP, particle.pos.Z()), Vector3(0, -1, 0));
 			if (particle.pos.X() - r <= walls.min.X())
-				AddContact(i, Vector3(walls.min.X(), particle.pos.Y(), particle.pos.Z()), Vector3(1, 0, 0));
+				AddContact(i, Vector3(walls.min.X(), particle.pos.Y(), particle.pos.Z()), Vector3(1, 0, 0), Vector3::Zero());
 			if (particle.pos.X() + r >= walls.max.X())
-				AddContact(i, Vector3(walls.max.X(), particle.pos.Y(), particle.pos.Z()), Vector3(-1, 0, 0));
+				AddContact(i, Vector3(walls.max.X(), particle.pos.Y(), particle.pos.Z()), Vector3(-1, 0, 0), Vector3::Zero());
 			if (particle.pos.Z() - r <= walls.min.Z())
-				AddContact(i, Vector3(particle.pos.X(), particle.pos.Y(), walls.min.Z()), Vector3(0, 0, 1));
+				AddContact(i, Vector3(particle.pos.X(), particle.pos.Y(), walls.min.Z()), Vector3(0, 0, 1), Vector3::Zero());
 			if (particle.pos.Z() + r >= walls.max.Z())
-				AddContact(i, Vector3(particle.pos.X(), particle.pos.Y(), walls.max.Z()), Vector3(0, 0, -1));
+				AddContact(i, Vector3(particle.pos.X(), particle.pos.Y(), walls.max.Z()), Vector3(0, 0, -1), Vector3::Zero());
 		}
 	}
 
@@ -104,7 +188,7 @@ namespace Physics
 			if (mParticles[i].invMass != 0 && IntersectSphereSphere(sphPos, sphRad, mParticles[i].pos, radTol, n, p, dSqr))
 			{
 				float dist = sqrtf(dSqr);
-				int idx = AddContact(i, p, n);
+				int idx = AddContact(i, p, n, Vector3::Zero());
 				if (dist < mThickness + sphRad)
 					mContacts[idx].depth = mThickness + sphRad - dist;
 			}
@@ -147,7 +231,7 @@ namespace Physics
 				//	intersect = IntersectSweptSphereTriangle(mParticles[i].prev, radTol, dir, v1, v2, v3, p, n, d, coords); // TODO: use velocity instead of prevPos
 				if (intersect)
 				{
-					AddContact(i, p, normal);
+					AddContact(i, p, normal, Vector3::Zero());
 				}
 			}
 		}
@@ -157,9 +241,6 @@ namespace Physics
 		if (node->right)
 			TestTreeNodeT(collMesh, node->right, i);
 	}
-
-#define NARROW_PHASE
-#define NARROW_PHASE_TRIS
 
 	void ClothModel::TestTreeNodeV(const Mesh* mesh, const AabbTree* node, size_t j)
 	{
@@ -216,324 +297,6 @@ namespace Physics
 		if (node->right)
 			TestTreeNodeV(mesh, node->right, j);
 	}
-
-	void ClothModel::TestTrees(const Mesh* mesh, AabbTree* node1, AabbTree* node2)
-	{
-		if (node1 == NULL || node2 == NULL)
-			return;
-		Aabb3 box1 = node1->box;
-		Aabb3 box2 = node2->box;
-		if (!AabbOverlap3D(box1, box2))
-			return;
-
-		if (node1->triangles.empty() && node1->vertices.empty())
-		{
-			if (node1->left)
-				TestTrees(mesh, node1->left, node2);
-			if (node1->right)
-				TestTrees(mesh, node1->right, node2);
-		}
-		else if (node2->triangles.empty() && node2->vertices.empty())
-		{
-			if (node2->left)
-				TestTrees(mesh, node1, node2->left);
-			if (node2->right)
-				TestTrees(mesh, node1, node2->right);
-		}
-		else
-		{
-			const float radTol = mThickness + mTolerance;
-			const Vector3 extrude(radTol);
-
-			if ((mCollFlags & CF_VERTICES) && !node1->vertices.empty() && !node2->triangles.empty())
-			{
-				Vector3 bndMin = node2->box.min - extrude;
-				Vector3 bndMax = node2->box.max + extrude;
-				for (size_t i = 0; i < node1->vertices.size(); i++)
-				{
-					int idx = node1->vertices[i].idx;
-					const Vector3& v = mParticles[idx].prev;
-					if (!PointInAabb3D(bndMin, bndMax, v)) // isn't this redundant?
-						continue;
-					for (size_t j = 0; j < node2->triangles.size(); j++)
-					{
-						int k = node2->triangles[j].idx * 3;
-#ifdef NARROW_PHASE
-						PrimitivePair pair;
-						pair.idx1 = idx;
-						pair.idx2 = k;
-						mPotentialContacts.push_back(pair);
-#else
-						// TODO: use same code
-						const uint16 i1 = mesh->indices[k];
-						const uint16 i2 = mesh->indices[k + 1];
-						const uint16 i3 = mesh->indices[k + 2];
-						const Vector3& v1 = mesh->vertices[i1];
-						const Vector3& v2 = mesh->vertices[i2];
-						const Vector3& v3 = mesh->vertices[i3];
-
-						Vector3 minV = vmin(vmin(v1, v2), v3) - extrude;
-						Vector3 maxV = vmax(vmax(v1, v2), v3) + extrude;
-						if (!PointInAabb3D(minV, maxV, v)) continue;
-
-						BarycentricCoords coords;
-						bool intersect = IntersectSphereTriangle(v, radTol, v1, v2, v3, n, p, d, coords);
-						if (intersect)
-						{
-							n = coords.u * mesh->normals[mesh->indices[k]] + 
-								coords.v * mesh->normals[mesh->indices[k + 1]] +
-								coords.w * mesh->normals[mesh->indices[k + 2]];
-							mParticles[idx].collided = AddContact(idx, p, n) + 1;
-						}
-#endif
-					}
-				}
-			}
-
-			if (mCollFlags & CF_TRIANGLES)
-			{
-				for (size_t j = 0; j < node1->triangles.size(); j++)
-				{
-					int tri = node1->triangles[j].idx;
-					const uint16 i1 = mTriangles[tri].i1;
-					const uint16 i2 = mTriangles[tri].i2;
-					const uint16 i3 = mTriangles[tri].i3;
-					Vector3 v1 = mParticles[i1].prev;
-					Vector3 v2 = mParticles[i2].prev;
-					Vector3 v3 = mParticles[i3].prev;
-
-					Vector3 n1 = (v2 - v1).Cross(v3 - v1);
-					n1.Normalize();
-
-					//// build AABB
-					//Vector3 minV = vmin(vmin(v1, v2), v3);// - extrude;
-					//Vector3 maxV = vmax(vmax(v1, v2), v3);// + extrude;
-
-					for (size_t i = 0; i < node2->vertices.size(); i++)
-					{
-						int idx = node2->vertices[i].idx;
-						Vector3 v = mesh->vertices[idx];
-
-						//float tol = (mParticles[i1].pos - v1).Length();
-						//Vector3 ext(mThickness + tol);
-
-						//if (!PointInAabb3D(minV - ext, maxV + ext, v))
-						//	continue;
-#ifdef NARROW_PHASE_TRIS
-						PrimitivePair pair;
-						pair.idx1 = tri;
-						pair.idx2 = node2->vertices[i].idx;
-						mPotentialTriContacts.push_back(pair);
-#else
-						if (n1.Dot(v - v1) < 0)
-							continue;
-
-						BarycentricCoords bar;
-						bool intersect;			
-						// TODO: use squares
-						//float tol = mesh->velocities[idx].Length() + 
-							//max((mParticles[i1].pos - v1).Length(), max((mParticles[i2].pos - v2).Length(), (mParticles[i3].pos - v3).Length()));
-						Vector3 n, p;
-						float d;
-						intersect = IntersectSphereTriangle(v, mThickness + mTolerance, v1, v2, v3, n, p, d, bar);
-						if (intersect)
-						{
-							//if (n.Dot(mesh->normals[idx]) < 0) // prevents hooking
-							//{
-							//	//n.Flip();
-							//	n = mesh->normals[idx];
-							//}
-							n = n1;
-							n.Flip();
-							TriContact contact;
-							contact.normal = n;
-							contact.point = v;
-							contact.i1 = i1;
-							contact.i2 = i2;
-							contact.i3 = i3;
-							contact.w1 = bar.u;
-							contact.w2 = bar.v;
-							contact.w3 = bar.w;
-							if (!mesh->velocities.empty())
-								contact.vel = mesh->velocities[node2->vertices[i]];
-							else
-								contact.vel.SetZero();
-							mTriContacts.push_back(contact);
-						}
-#endif
-					}
-				}
-			}
-		}
-	}
-
-	void ClothModel::ClothVertexVsMeshTriangle(const Mesh* mesh, int vertexIndex, int triangleIndex)
-	{
-		// TODO: use SDF abstraction
-		const Vector3& v = mParticles[vertexIndex].prev;
-		const uint16 i1 = mesh->indices[triangleIndex];
-		const uint16 i2 = mesh->indices[triangleIndex + 1];
-		const uint16 i3 = mesh->indices[triangleIndex + 2];
-		const Vector3& v1 = mesh->vertices[i1];
-		const Vector3& v2 = mesh->vertices[i2];
-		const Vector3& v3 = mesh->vertices[i3];
-		const Vector3& w = mParticles[vertexIndex].pos;
-
-		float tol = (w - v).Length();
-		float radTol = mThickness + tol + mTolerance;
-		const Vector3 extrude(radTol);
-
-		Vector3 minV = vmin(vmin(v1, v2), v3) - extrude;
-		Vector3 maxV = vmax(vmax(v1, v2), v3) + extrude;
-		if (!PointInAabb3D(minV, maxV, v))
-			return;
-
-		Vector3 n1 = (v2 - v1).Cross(v3 - v1);
-		n1.Normalize();
-		// if coming from inside skip
-		BarycentricCoords coords;
-		Vector3 n, p;
-		float d;
-		bool intersect = false;
-		if (n1.Dot(v - v1) > 0)
-			intersect = IntersectSphereTriangle(v, radTol, v1, v2, v3, n, p, d, coords);
-
-		if (intersect)
-		#pragma omp critical
-		{
-			if (mParticles[vertexIndex].collided)
-			{
-				int ctIdx = mParticles[vertexIndex].collided - 1;
-				float depthNew = n.Dot(v - p);
-				float depthOld = mContacts[ctIdx].normal.Dot(v - mContacts[ctIdx].point);
-				if (depthNew < depthOld)
-				{
-					mContacts[ctIdx].point = p;
-					mContacts[ctIdx].normal = n;
-				}
-			}
-			else
-			{
-				int cid = AddContact(vertexIndex, p, n);
-				if (!mesh->velocities.empty())
-				{
-					Vector3 vel = coords.x * mesh->velocities[mesh->indices[triangleIndex]] +
-						coords.y * mesh->velocities[mesh->indices[triangleIndex + 1]] +
-						coords.z * mesh->velocities[mesh->indices[triangleIndex + 2]];
-					mContacts[cid].vel = vel;
-				}
-				mParticles[vertexIndex].collided = cid + 1;
-			}
-		}
-	}
-
-	void ClothModel::MeshCollisions(const CollisionMesh& collMesh, const Vector3& meshOffset)
-	{
-		PROFILE_SCOPE("MeshCollisions");
-		mPotentialContacts.clear();
-		mPotentialTriContacts.clear();
-		{
-			PROFILE_SCOPE("Tree traversal");
-			TestTrees(collMesh.mesh, mTree, collMesh.tree);
-		}
-
-		if (1/*!mUseCL*/)
-		{
-#ifdef NARROW_PHASE
-			PROFILE_SCOPE("Narrow phase");
-			const Mesh* mesh = collMesh.mesh;
-			for (size_t i = 0; i < GetNumParticles(); i++)
-			{
-				mParticles[i].collided = false;
-			}
-			#pragma omp parallel for
-			for (int i = 0; i < (int)mPotentialContacts.size(); i++)
-			{
-				int k = mPotentialContacts[i].idx2;
-				int idx = mPotentialContacts[i].idx1;
-				ClothVertexVsMeshTriangle(mesh, idx, k);
-			}
-#endif
-			// TODO: can process the two lists in parallel (a single for?)
-
-#ifdef NARROW_PHASE_TRIS
-			//const Mesh* mesh = collMesh.mesh;
-			// triangle contacts
-			#pragma omp parallel for
-			for (int i = 0; i < (int)mPotentialTriContacts.size(); i++)
-			{
-				int tri = mPotentialTriContacts[i].idx1;
-				const uint16 i1 = mTriangles[tri].i1;
-				const uint16 i2 = mTriangles[tri].i2;
-				const uint16 i3 = mTriangles[tri].i3;
-				const Vector3& v1 = mParticles[i1].prev;
-				const Vector3& v2 = mParticles[i2].prev;
-				const Vector3& v3 = mParticles[i3].prev;
-				const Vector3& w1 = mParticles[i1].pos;
-				const Vector3& w2 = mParticles[i2].pos;
-				const Vector3& w3 = mParticles[i3].pos;
-
-				float tol = (w1 - v1).Length();
-				float radTol = mThickness + tol;
-				int idx = mPotentialTriContacts[i].idx2;
-				Vector3 v = mesh->vertices[idx];
-
-				Vector3 minV = vmin(vmin(v1, v2), v3);
-				Vector3 maxV = vmax(vmax(v1, v2), v3);
-				Vector3 ext(mThickness + tol);
-
-				if (!PointInAabb3D(minV - ext, maxV + ext, v))
-					continue;
-
-				Vector3 n1 = (v2 - v1).Cross(v3 - v1);
-				n1.Normalize();
-				
-				if (n1.Dot(v - v1) < 0)
-					continue;
-
-				BarycentricCoords bar;
-				Vector3 n, p;
-				float d;
-				bool intersect;			
-				intersect = IntersectSphereTriangle(v, radTol, v1, v2, v3, n, p, d, bar);
-				if (!intersect)
-				{
-					intersect = IntersectSphereTriangle(v, radTol, w1, w2, w3, n, p, d, bar);
-				}
-				if (intersect)
-				{
-					//if (mesh->normals[idx].Dot(n1) < 0)
-					n1.Flip();
-					n = n1;
-					TriContact contact;
-					contact.normal = n;
-					contact.point = v;
-					contact.i1 = i1;
-					contact.i2 = i2;
-					contact.i3 = i3;
-					contact.w1 = bar.x;
-					contact.w2 = bar.y;
-					contact.w3 = bar.z;
-					if (!mesh->velocities.empty())
-						contact.vel = mesh->velocities[idx];
-					else
-						contact.vel.SetZero();
-					#pragma omp critical
-					mTriContacts.push_back(contact);
-				}
-			}
-#endif // NARROW_PHASE_TRIS
-		}
-		//else if (!mPotentialContacts.empty())
-		//{
-		//	PROFILE_SCOPE("CL NarrowPhase");
-		//	// TODO: only one function
-		//	collCL.CopyBuffers(mPotentialContacts, mParticles);
-		//	collCL.NarrowPhase(radTol);
-		//	collCL.ReadBuffers(mPotentialContacts.size(), mContacts);
-		//}
-	}
-
 
 	// duplicated code
 	void ClothModel::ComputeTree(int flags, int maxLevel, float tol)
@@ -727,49 +490,98 @@ namespace Physics
 	}
 
 	template<typename SDFType>
-	void ClothModel::SDFCollisions(const SDFType& sdf)
+	void ClothModel::SDFCollisions(const SDFType& sdf,
+		bool handleInside, // not so great for vertex collisions (but balanced by edge collisions); verty stable for Buddha when false
+		bool handleCurrent, // give it up? we're using it for the threshold now; a bit better disabled for Buddha
+		bool handleBorder) // better false for stability (Buddha); but better true for no missed collisions (old info?)
 	{
 		PROFILE_SCOPE("SDF collisions");
-		
-		const bool handleInside = true;
-		const bool handleCurrent = true;
 
-		const float radTol = mThickness + mTolerance;
-
-		#pragma omp parallel for
-		for (int i = 0; i < mParticles.size(); i++)
+		if (mCollFlags & CF_VERTICES)
 		{
-			if (mParticles[i].invMass == 0)
-				continue;
-
-			Vector3 p, n;
-			float dist = sdf.QueryPoint(mParticles[i].prev, p, n);
-
-			// check if the distance to the sphere surface is less than our threshold
-			if (dist < radTol && (dist >= 0 || handleInside))
-			#pragma omp critical
+			#pragma omp parallel for
+			for (int i = 0; i < mParticles.size(); i++)
 			{
-				int idx = AddContact(i, p, n);
-				if (dist < mThickness) // if the distance is actually smaller than the cloth thickness
-					mContacts[idx].depth = mThickness - dist; // then report a non-zero penetration depth
-			}
-			else if (handleCurrent)
-			{
-				Vector3 p1, n1;
-				float dist1 = sdf.QueryPoint(mParticles[i].pos, p1, n1);
+				Vector3 p, n;
+				int vtx = mCacheVT[i];
+				float dist = sdf.QueryPoint(mParticles[i].prev, p, n, vtx);
+				// we are not limiting to the interior of the triangle, so we can catch VE or VV cases that may resurface later
+				
+				// compute the threshold
+				float tv = (mParticles[i].prev - mParticles[i].pos).Length();
+				float radTol = mThickness + std::max(mTolerance, tv * 1.1f);
 
-				if (dist1 < radTol && (dist1 >= 0 || handleInside))
+				// check if the distance to the sphere surface is less than our threshold
+				if (dist < radTol && (dist >= 0 || handleInside))
 				#pragma omp critical
 				{
-					int idx = AddContact(i, p1, n1);
-					if (dist1 < mThickness) // if the distance is actually smaller than the cloth thickness
-						mContacts[idx].depth = mThickness - dist1; // then report a non-zero penetration depth
+					int idx = AddContact(i, p, n, Vector3::Zero());
+				}
+				else if (handleCurrent)
+				{
+					Vector3 p1, n1;
+					float dist1 = sdf.QueryPoint(mParticles[i].pos, p1, n1, vtx);
+
+					if (dist1 < radTol && (dist1 >= 0 || handleInside))
+					#pragma omp critical
+					{
+						int idx = AddContact(i, p1, n1, Vector3::Zero());
+					}
 				}
 			}
 		}
 
-		//Printf("penetrated: %d / %d, inside: %d / %d, intersect: %d\n", countPrev, countPos, countPrevIn, countPosIn, intersections);
+		const float eps = 0.001f; // threshold to cut barycentric coordinate - needs to be tweaked
 
+		if (mCollFlags & CF_EDGES)
+		{
+			#pragma omp parallel for
+			for (int i = 0; i < mEdges.size(); i++)
+			{
+				int i1 = mEdges[i].i1;
+				int i2 = mEdges[i].i2;
+				Vector3 p = mParticles[i1].prev;
+				Vector3 q = mParticles[i2].prev;
+				
+				Vector2 coords;
+				Vector3 cp, n;
+				int edge = mCacheEE[i];
+				float dist = sdf.QuerySegment(p, q, cp, n, coords, edge);
+
+				// compute the threshold
+				float tv1 = (mParticles[i1].prev - mParticles[i1].pos).Length();
+				float tv2 = (mParticles[i2].prev - mParticles[i2].pos).Length();
+				float tv = std::max(tv1, tv2);
+				float radTol = mThickness + std::max(mTolerance, tv * 1.1f);
+
+				if (dist < radTol && (dist >= 0 || handleInside) && 
+					((coords.x > eps && coords.x < 1.f - eps && coords.y > eps && coords.y < 1.f - eps) || handleBorder))
+				{
+					#pragma omp critical
+					AddEdgeContact(i1, i2, cp, n, coords, Vector3::Zero());
+				}
+				else if (handleCurrent)
+				{
+					p = mParticles[i1].pos;
+					q = mParticles[i2].pos;
+
+					dist = sdf.QuerySegment(p, q, cp, n, coords, edge);
+
+					if (dist < radTol && (dist >= 0 || handleInside) && 
+						((coords.x > eps && coords.x < 1.f - eps && coords.y > eps && coords.y < 1.f - eps) || handleBorder))
+					{
+						#pragma omp critical
+						AddEdgeContact(i1, i2, cp, n, coords, Vector3::Zero());
+					}
+
+				}
+			}
+		}
+
+		// we must handle borders for triangles, otherwise we can miss a closest point
+		// but only if edge collisions are disabled, otherwise the edges are caught there (but not the vertices?)
+		handleBorder |= (mCollFlags & CF_EDGES) == 0;
+		
 		if (mCollFlags & CF_TRIANGLES)
 		{
 			#pragma omp parallel for
@@ -783,19 +595,45 @@ namespace Physics
 				const Particle& p2 = mParticles[i2];
 				const Particle& p3 = mParticles[i3];
 
-				const Vector3& v1 = p1.pos;
-				const Vector3& v2 = p2.pos;
-				const Vector3& v3 = p3.pos;
+				const Vector3& v1 = p1.prev;
+				const Vector3& v2 = p2.prev;
+				const Vector3& v3 = p3.prev;
 
 				Vector3 closestPt, normal, coords;
-				float dist = sdf.QueryTriangle(v1, v2, v3, closestPt, normal, coords);
+				int tri = mCacheTV[i];
+				float dist = sdf.QueryTriangle(v1, v2, v3, closestPt, normal, coords, tri);
+				// 'closestPt' is a vertex on the mesh
 
-				if (dist < radTol && (dist >= 0 || handleInside))
+				// compute the threshold
+				float tv1 = (mParticles[i1].prev - mParticles[i1].pos).Length();
+				float tv2 = (mParticles[i2].prev - mParticles[i2].pos).Length();
+				float tv3 = (mParticles[i3].prev - mParticles[i3].pos).Length();
+				float tv = std::max(tv1, std::max(tv2, tv3));
+				float radTol = mThickness + std::max(mTolerance, tv * 1.1f);
+
+				// Testing the previous positions and including negative distance give the best results so far
+				if (dist < radTol && (dist >= 0 || handleInside) && 
+					((coords.x > eps && coords.y > eps && coords.z > eps) || handleBorder))
 				#pragma omp critical
 				{
-					int idx = AddTriContact(i1, i2, i3, closestPt, normal, coords);
-					if (dist < mThickness) // if the distance is actually smaller than the cloth thickness
-						mTriContacts[idx].depth = mThickness - dist; // then report a non-zero penetration depth
+					int idx = AddTriContact(i1, i2, i3, closestPt, normal, coords, Vector3::Zero());
+				}
+				else if (handleCurrent)
+				{
+					const Vector3& w1 = p1.pos;
+					const Vector3& w2 = p2.pos;
+					const Vector3& w3 = p3.pos;
+
+					dist = sdf.QueryTriangle(w1, w2, w3, closestPt, normal, coords, tri);
+					// 'closestPt' is a vertex on the mesh
+
+					// Testing the previous positions and including negative distance give the best results so far
+					if (dist < radTol && (dist >= 0 || handleInside) && 
+						((coords.x > eps && coords.y > eps && coords.z > eps) || handleBorder))
+					#pragma omp critical
+					{
+						int idx = AddTriContact(i1, i2, i3, closestPt, normal, coords, Vector3::Zero());
+					}
 				}
 			}
 		}

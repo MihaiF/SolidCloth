@@ -29,6 +29,44 @@ namespace Geometry
 			min -= ext;
 			max += ext;
 		}
+
+		// code below taken from G3
+		float DistanceSquared(Math::Vector3 v)
+		{
+			float dx = (v.x < min.x) ? min.x - v.x : (v.x > max.x ? v.x - max.x : 0);
+			float dy = (v.y < min.y) ? min.y - v.y : (v.y > max.y ? v.y - max.y : 0);
+			float dz = (v.z < min.z) ? min.z - v.z : (v.z > max.z ? v.z - max.z : 0);
+			return dx * dx + dy * dy + dz * dz;
+		}
+
+		float Distance(Math::Vector3 v)
+		{
+			return sqrtf(DistanceSquared(v));
+		}
+
+		float DistanceSquared(Aabb3 box2)
+		{
+			// compute lensqr( max(0, abs(center1-center2) - (extent1+extent2)) )
+			float delta_x = fabsf((box2.min.x + box2.max.x) - (min.x + max.x))
+				- ((max.x - min.x) + (box2.max.x - box2.min.x));
+			if (delta_x < 0)
+				delta_x = 0;
+			float delta_y = fabsf((box2.min.y + box2.max.y) - (min.y + max.y))
+				- ((max.y - min.y) + (box2.max.y - box2.min.y));
+			if (delta_y < 0)
+				delta_y = 0;
+			float delta_z = fabsf((box2.min.z + box2.max.z) - (min.z + max.z))
+				- ((max.z - min.z) + (box2.max.z - box2.min.z));
+			if (delta_z < 0)
+				delta_z = 0;
+			return 0.25f * (delta_x * delta_x + delta_y * delta_y + delta_z * delta_z);
+		}
+
+		float Distance(Aabb3 box2)
+		{
+			return sqrtf(DistanceSquared(box2));
+		}
+
 	};
 
 	inline bool AabbOverlap3D(const Aabb3& bounds1, const Aabb3& bounds2)
@@ -54,19 +92,6 @@ namespace Geometry
 		return !(point.X() < min.X() || point.X() > max.X()
 			|| point.Y() < min.Y() || point.Y() > max.Y()
 			|| point.Z() < min.Z() || point.Z() > max.Z());
-	}
-
-	inline float AabbDistanceSquared(Math::Vector3 v, Math::Vector3 min, Math::Vector3 max)
-	{
-		float dx = (v.x < min.x) ? min.x - v.x : (v.x > max.x ? v.x - max.x : 0);
-		float dy = (v.y < min.y) ? min.y - v.y : (v.y > max.y ? v.y - max.y : 0);
-		float dz = (v.z < min.z) ? min.z - v.z : (v.z > max.z ? v.z - max.z : 0);
-		return dx * dx + dy * dy + dz * dz;
-	}
-
-	inline float AabbDistance(Math::Vector3 v, Math::Vector3 min, Math::Vector3 max)
-	{
-		return sqrtf(AabbDistanceSquared(v, min, max));
 	}
 
 	inline bool TestSegmentAABB(const Math::Vector3& p0, const Math::Vector3& p1, const Aabb3& b)

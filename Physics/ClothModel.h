@@ -9,6 +9,7 @@
 #include "Geometry/Mesh.h"
 #include "Geometry/SDF.h"
 #include "Geometry/ClosestPointOnMesh.h"
+#include "Geometry/ClosestPointsBetweenMeshes.h"
 #include "Common.h"
 #include "ClothCollisionSDF.h"
 
@@ -18,14 +19,6 @@
 namespace Physics
 {
 	class ClothPatch;
-
-	enum CollFlags
-	{
-		CF_VERTICES = 1,
-		CF_TRIANGLES = 2,
-		//CF_SELF = 4,
-		CF_WALLS = 8
-	};
 
 	enum SolverType
 	{
@@ -40,7 +33,7 @@ namespace Physics
 	{
 	public:
 		ClothModel(ClothPatch* owner);
-		virtual ~ClothModel() { ClearCollidables(); }
+		virtual ~ClothModel() { }
 		
 		void SetNumParticles(size_t val) { mParticles.resize(val); }
 		size_t GetNumParticles() const { return mParticles.size(); }
@@ -61,11 +54,18 @@ namespace Physics
 		size_t GetNumContacts() const { return mContacts.size(); }
 		const Contact& GetContact(size_t i) const { return mContacts[i]; }
 		Contact& GetContact(size_t i) { return mContacts[i]; }
-		int AddContact(size_t idx, const Vector3& p, const Vector3& n);
+		int AddContact(size_t idx, Vector3 p, Vector3 n, Vector3 vel);
 
+		size_t GetNumEdgeContacts() const { return mEdgeContacts.size(); }
+		const EdgeContact& GetEdgeContact(size_t i) const { return mEdgeContacts[i]; }
+		EdgeContact& GetEdgeContact(size_t i) { return mEdgeContacts[i]; }
+		int AddEdgeContact(int i1, int i2, Vector3 p, Vector3 n, Vector2 coords, Vector3 vel);
+		
 		size_t GetNumTriContacts() const { return mTriContacts.size(); }
 		const TriContact& GetTriContact(size_t i) const { return mTriContacts[i]; }
-		int AddTriContact(int i1, int i2, int i3, Vector3 p, Vector3 n, Vector3 bar);
+		TriContact& GetTriContact(size_t i) { return mTriContacts[i]; }
+		int AddTriContact(int i1, int i2, int i3, Vector3 p, Vector3 n, Vector3 bar, Vector3 vel);
+		
 		
 		void SetPositions(const Vector3* positions);
 		void SetMasses(const float* masses);
@@ -77,7 +77,7 @@ namespace Physics
 		void AddBendConstraint(const Geometry::Mesh::Edge& e, bool useLink);
 		
 		virtual void Step(float h) = 0;		
-		virtual void Init() { /*collCL.Init();*/ }
+		virtual void Init() {}
 
 		float GetStretchStiffness() const { return mStretchStiff; }
 		void SetStretchStiffness(float val) { mStretchStiff = val; }
@@ -110,10 +110,6 @@ namespace Physics
 		void SetCollisionFlags(int val) { mCollFlags = val; }
 		int GetCollisionFlags() const { return mCollFlags; }
 
-		void AddCollidable(std::shared_ptr<Collidable>& coll);
-		void ClearCollidables();
-		size_t GetNumCollidables() const { return mCollidables.size(); }
-		const Collidable* GetCollidable(size_t i) const { return mCollidables[i].get(); }
 		Geometry::AabbTree*& GetTree() { return mTree; }
 
 		void AddMouseSpring(int i1, int i2, int i3, const Math::BarycentricCoords& coords, const Vector3& p);
@@ -126,24 +122,27 @@ namespace Physics
 		void ResetConstraints();
 		void DetectCollisions();
 
+		int GetCacheVT(int i) const { return mCacheVT[i]; }
+		int GetCacheTV(int i) const { return mCacheTV[i]; }
+		int GetCacheEE(int i) const { return mCacheEE[i]; }
+
+		void UpdateMesh(Geometry::Mesh& mesh, bool isQuadMesh, Vector3 position, bool usePrev = false);
+
 	protected:
 		void ExternalCollisions();
 		void WallCollisions(const Geometry::Aabb3& walls);
 		void SphereCollisions(const Vector3& sphPos, float sphRad);
-		void MeshCollisions(const CollisionMesh& collMesh, const Vector3& meshOffset);
+		void MeshCollisions(const CollisionMesh& collMesh);
 		void TestTreeNodeT(const CollisionMesh& collMesh, const Geometry::AabbTree* node, size_t i);
 		void TestTreeNodeV(const Geometry::Mesh* mesh, const Geometry::AabbTree* node, size_t j);
-		void TestTrees(const Geometry::Mesh* mesh, Geometry::AabbTree* node1, Geometry::AabbTree* node2);
 
 		template<typename SDFType>
-		void SDFCollisions(const SDFType& sdf);
+		void SDFCollisions(const SDFType& sdf, bool handleInside = false, bool handleCurrent = false, bool handleBorder = false);
 
 		void HandleMouseSpring(float h);
 
 		void ComputeTree(int flags, int maxLevel, float tol);
 		void SplitNode(Geometry::AabbTree* root, int level, int maxLevel, int flags, float tol);
-
-		void ClothVertexVsMeshTriangle(const Geometry::Mesh* mesh, int vertexIndex, int triangleIndex);
 
 	protected:
 		ClothPatch* mOwnerPatch;
@@ -174,17 +173,28 @@ namespace Physics
 		std::vector<Link> mLinks;
 		std::vector<BendConstraint> mBends;
 		std::vector<Contact> mContacts;
+		std::vector<EdgeContact> mEdgeContacts;
 		std::vector<TriContact> mTriContacts;
 		MouseSpring mMouseSpring;
 		// collision
-		std::vector<std::shared_ptr<Collidable> > mCollidables;
 		Geometry::AabbTree* mTree;
 
 		int mFrames;
 		bool mUseCL;		
 		std::vector<PrimitivePair> mPotentialContacts;
 		std::vector<PrimitivePair> mPotentialTriContacts;
-		
+
+		bool mSolveSDFContacts = false;
+
+		std::vector<int> mCacheVT;
+		std::vector<int> mCacheEE;
+		std::vector<int> mCacheTV;
+
+		std::vector<std::vector<int>> mSetVT;
+		std::vector<std::vector<int>> mSetTV;
+
+		Geometry::MeshClosestPoints mClosestPoints;
+
 #ifdef ENABLE_CL
 		NarrowPhaseCL collCL;
 #endif

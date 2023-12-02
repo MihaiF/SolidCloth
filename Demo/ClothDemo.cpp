@@ -16,6 +16,7 @@ ClothDemo::ClothDemo()
 	, mHorizontal(false)
 	, mAttached(false)
 	, mSelected(-1)
+	, mCloth(mCollWorld)
 	, mDivisions(30)
 {
 	mCheckerTexture.reset(new Texture());
@@ -26,23 +27,28 @@ void ClothDemo::Create(int type)
 	if (!mCheckerTexture->LoadTexture("../Res/checker.bmp"))
 		Printf("Failed to load texture\n");
 
+	mDemoType = type;
+	mCloth.GetModel().SetCollisionFlags(CF_WALLS | CF_VERTICES | CF_TRIANGLES);
+}
+
+void ClothDemo::Init()
+{
 	Aabb3 walls(Vector3(-60), Vector3(60));
-	mCloth.GetModel().ClearCollidables();
-	mCloth.GetModel().AddCollidable(std::shared_ptr<Collidable>(new Walls(walls)));
+	mCollWorld.ClearCollidables();
+	mCollWorld.AddCollidable(std::shared_ptr<Collidable>(new Walls(walls)));
 	mHorizontal = true;
 	mAttached = false;
-	mCloth.GetModel().SetCollisionFlags(CF_WALLS);
-	if (type == CLOTH_DEMO_SPHERE)
+	if (mDemoType == CLOTH_DEMO_SPHERE)
 	{
-		mCloth.GetModel().AddCollidable(std::shared_ptr<Collidable>(new Sphere(Vector3(0, -10, 0), 25)));
+		mCollWorld.AddCollidable(std::shared_ptr<Collidable>(new Sphere(Vector3(0, -10, 0), 25)));
 	}
-	else if (type == CLOTH_DEMO_CAPSULE)
+	else if (mDemoType == CLOTH_DEMO_CAPSULE)
 	{
 		Quaternion q;
 		q.SetAxisAngle(1.3f, Vector3(1, 0.5f, 0));
-		mCloth.GetModel().AddCollidable(std::shared_ptr<Collidable>(new Capsule(Vector3(0, -10, 0), 11, 10, q)));
+		mCollWorld.AddCollidable(std::shared_ptr<Collidable>(new Capsule(Vector3(0, -10, 0), 16, 15, q)));
 	}
-	else if (type == CLOTH_DEMO_SDF)
+	else if (mDemoType == CLOTH_DEMO_SDF)
 	{
 		mSDF.LoadFromFile("../Models/bunny.sdf");
 		mSDF.ComputeGradient();
@@ -55,9 +61,9 @@ void ClothDemo::Create(int type)
 		mSDF.GetNumCellsPerSide(precision);
 		collSDF->isoMesh.Clear();
 		CreateIsoSurface(collSDF->isoMesh, eval, grad, mSDF.GetBox(), precision);
-		mCloth.GetModel().AddCollidable(std::shared_ptr<Collidable>(collSDF));
+		mCollWorld.AddCollidable(std::shared_ptr<Collidable>(collSDF));
 	}
-	else if (type == CLOTH_DEMO_MESH)
+	else if (mDemoType == CLOTH_DEMO_MESH)
 	{
 		bool ret = false;
 		if (mClothAsset == CLOTH_ASSET_BUDDHA)
@@ -80,11 +86,11 @@ void ClothDemo::Create(int type)
 		{
 			mMeshCopy = mMesh; // make a copy
 			mCollisionMesh.reset(new Physics::CollisionMesh(&mMeshCopy));
-			mCloth.GetModel().AddCollidable(std::shared_ptr<Collidable>(mCollisionMesh));
+			mCollWorld.AddCollidable(std::shared_ptr<Collidable>(mCollisionMesh));
 		}
 		else
 			Printf("Could not load mesh\n");
-		mCloth.GetModel().SetCollisionFlags(Physics::CF_WALLS | Physics::CF_VERTICES | Physics::CF_TRIANGLES);
+		mCloth.GetModel().SetCollisionFlags(CF_WALLS | CF_VERTICES | CF_TRIANGLES);
 	}
 	else
 	{
@@ -92,11 +98,8 @@ void ClothDemo::Create(int type)
 		mAttached = true;
 		mCloth.GetModel().SetCollisionFlags(0);
 	}
-}
 
-void ClothDemo::Init()
-{
-	if (mClothAsset == CLOTH_ASSET_DEFAULT || mClothAsset == CLOTH_ASSET_BUDDHA || mClothAsset == CLOTH_ASSET_BUNNY 
+	if (mClothAsset == CLOTH_ASSET_DEFAULT || mClothAsset == CLOTH_ASSET_BUDDHA || mClothAsset == CLOTH_ASSET_BUNNY
 		|| mClothAsset == CLOTH_ASSET_DRAGON || mClothAsset == CLOTH_ASSET_SPHERE)
 	{
 		Vector3 offset(0, 30, 10);
@@ -309,43 +312,41 @@ void ClothDemo::Draw(Graphics3D* graphics3D, bool showDebug, int debugDrawFlags)
 	}
 
 	// draw collidables
-	for (size_t i = 0; i < mCloth.GetModel().GetNumCollidables(); i++)
+	for (size_t i = 0; i < mCollWorld.GetNumCollidables(); i++)
 	{
-		if (mCloth.GetModel().GetCollidable(i)->mType == CT_MESH)
+		if (mCollWorld.GetCollidable(i)->mType == CT_MESH)
 		{
 			graphics3D->SetColor(0.82f, 0.94f, 0.8f);
-			const CollisionMesh* collMesh = (const CollisionMesh*)mCloth.GetModel().GetCollidable(i);
+			const CollisionMesh* collMesh = (const CollisionMesh*)mCollWorld.GetCollidable(i);
 			const Mesh* mesh = collMesh->mesh;
 			graphics3D->DrawMesh(mesh->vertices, mesh->normals, mesh->indices);
 			if (showDebug && (debugDrawFlags & DDF_TREE))
 				DrawTree(graphics3D, collMesh->tree);
 		}
-		if (mCloth.GetModel().GetCollidable(i)->mType == CT_SDF)
+		if (mCollWorld.GetCollidable(i)->mType == CT_SDF)
 		{
 			graphics3D->SetColor(0.82f, 0.94f, 0.8f);
-			const CollisionSDF* collSDF = (const CollisionSDF*)mCloth.GetModel().GetCollidable(i);
+			const CollisionSDF* collSDF = (const CollisionSDF*)mCollWorld.GetCollidable(i);
 			const SDF* sdf = collSDF->sdf;
 			const Mesh* mesh = &collSDF->isoMesh;
 			graphics3D->DrawMesh(mesh->vertices, mesh->normals, mesh->indices);
 		}
-		else if (mCloth.GetModel().GetCollidable(i)->mType == CT_SPHERE)
+		else if (mCollWorld.GetCollidable(i)->mType == CT_SPHERE)
 		{
-			const ClothModel& model = mCloth.GetModel();
-			const Sphere* sph = (const Sphere*)model.GetCollidable(i);
+			const Sphere* sph = (const Sphere*)mCollWorld.GetCollidable(i);
 			graphics3D->SetColor(0.82f, 0.74f, 0.8f);
 			graphics3D->DrawSphere(sph->center, sph->radius);
 		}
-		else if (mCloth.GetModel().GetCollidable(i)->mType == CT_CAPSULE)
+		else if (mCollWorld.GetCollidable(i)->mType == CT_CAPSULE)
 		{
-			const ClothModel& model = mCloth.GetModel();
-			const Capsule* cap = (const Capsule*)model.GetCollidable(i);
+			const Capsule* cap = (const Capsule*)mCollWorld.GetCollidable(i);
 			graphics3D->SetColor(0.82f, 0.74f, 0.8f);
 			graphics3D->DrawCapsule(cap->center, cap->r, cap->hh, cap->rot.ToMatrix());
 		}
-		else if (mCloth.GetModel().GetCollidable(i)->mType == CT_WALLS)
+		else if (mCollWorld.GetCollidable(i)->mType == CT_WALLS)
 		{
 			graphics3D->SetColor(0.f, 0.f, 0.f);
-			const Walls* walls = (const Walls*)mCloth.GetModel().GetCollidable(i);
+			const Walls* walls = (const Walls*)mCollWorld.GetCollidable(i);
 			Vector3 c = walls->mBox.GetCenter();
 			Vector3 e = walls->mBox.GetExtent();
 			graphics3D->DrawWireCube(c, e, Matrix3::Identity());

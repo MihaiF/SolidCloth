@@ -19,6 +19,7 @@ namespace Geometry
 			//Aabb3 box; // hack for AABB tree based self collision
 			int count; // multiplicity
 			int origIdx;
+			bool swapped = false; // whether the edge is aligned with T1 or T2
 			Edge() : i1(0), i2(0), t1(-1), t2(-1), count(0) { }
 			Edge(int a, int b) : i1(a), i2(b), t1(-1), t2(-1), count(1) { }
 		};

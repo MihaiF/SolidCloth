@@ -6,7 +6,12 @@ using namespace Geometry;
 
 namespace Physics
 {
-	ClothPatch::ClothPatch() : mNumSteps(1), mMesh(new Mesh())
+	ClothPatch::ClothPatch(const CollisionWorld& world) : 
+		isQuadMesh(true),
+		mNumSteps(1), 
+		mMesh(new Mesh()), 
+		mCollWorld(world),
+		mCollisionHandler(world)
 	{ 
 		mModel = new ClothModelPBD(this);
 		mCollisionHandler.SetClothModel(mModel);

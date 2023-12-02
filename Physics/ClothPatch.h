@@ -14,6 +14,7 @@ namespace Geometry
 namespace Physics
 {
 	class ClothModel;
+	class CollisionWorld;
 
 	enum MethodType
 	{
@@ -23,7 +24,7 @@ namespace Physics
 	class ClothPatch
 	{
 	public:
-		ClothPatch();
+		ClothPatch(const CollisionWorld& world);
 		ClothPatch& operator =(const ClothPatch& other);
 		~ClothPatch();
 		// init quad sim-mesh based on input args
@@ -35,6 +36,7 @@ namespace Physics
 		void ComputeMass();
 
 		const Geometry::Mesh& GetMesh() const { return *mMesh; }
+		Geometry::Mesh& GetMesh() { return *mMesh; }
 		const ClothModel& GetModel() const { return *mModel; }
 		ClothModel& GetModel() { return *mModel; }
 		float GetMaxMass() const { return mMaxMass; }
@@ -44,6 +46,8 @@ namespace Physics
 		void SetNumSteps(int val) { mNumSteps = val; }
 
 		ClothCollisionHandler& GetCollisionHandler() { return mCollisionHandler; }
+
+		const CollisionWorld& GetCollWorld() const { return  mCollWorld; }
 
 	private:
 		bool isQuadMesh;
@@ -55,6 +59,8 @@ namespace Physics
 		int mNumSteps;
 
 		ClothCollisionHandler mCollisionHandler;
+
+		const CollisionWorld& mCollWorld;
 	};
 }
 

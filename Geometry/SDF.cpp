@@ -65,11 +65,10 @@ void SDF::CreateFromMesh(const Mesh& mesh, const AabbTree* tree)
 		int x, y, z;
 		GetCoords(idx, x, y, z);
 		Vector3 org = GetPosAt(x, y, z);
-		Vector3 normal;
-		Vector3 pt1;
-		float val = ClosestPointOnMeshToPointAcc(org, mesh, tree, pt1, normal);
-		Vector3 delta = org - pt1;
-		if (delta.Dot(normal) < 0)
+		ClosestTriangleToPoint info = ClosestPointOnMeshToPointAcc(org, mesh, tree);
+		float val = info.distance;
+		Vector3 delta = org - info.closestPtMesh;
+		if (delta.Dot(info.normal) < 0)
 			val = -val;
 		mSDF[idx] = val;
 	}

@@ -45,11 +45,6 @@ namespace Physics
 		}
 	}
 
-	void ClothModel::ClearCollidables()
-	{
-		mCollidables.clear();
-	}
-	
 	void ClothModel::AddTriangle(size_t i1, size_t i2, size_t i3, Vector2 uv1, Vector2 uv2, Vector2 uv3)
 	{
 		Triangle tri;
@@ -173,15 +168,6 @@ namespace Physics
 			mParticles[mMouseSpring.i1].pos -= h * disp;
 			mParticles[mMouseSpring.i1].vel -= disp;
 		}
-	}
-
-	void ClothModel::AddCollidable(std::shared_ptr<Collidable>& coll)
-	{
-		mCollidables.push_back(coll);
-		//if (coll->mType == CT_MESH)
-		//{
-		//	collCL.PrepareBuffers(mParticles, *((CollisionMesh*)coll.get())->mesh);
-		//}
 	}
 
 	void ClothModel::ResetConstraints()

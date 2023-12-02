@@ -30,19 +30,34 @@ namespace Physics
 		mLinks.push_back(link);
 	}
 
-	inline int ClothModel::AddContact(size_t idx, const Vector3& p, const Vector3& n)
+	inline int ClothModel::AddContact(size_t idx, Vector3 p, Vector3 n, Vector3 vel)
 	{
 		Contact contact;
 		contact.idx = (unsigned)idx;
 		contact.point = p;
 		contact.normal = n;
-		contact.vel.SetZero();
+		contact.vel = vel;
 		mContacts.push_back(contact);
 		return (int)(mContacts.size() - 1);
 	}
 
-	inline int ClothModel::AddTriContact(int i1, int i2, int i3, Vector3 p, Vector3 n, Math::BarycentricCoords bar)
+	inline int ClothModel::AddEdgeContact(int i1, int i2, Vector3 p, Vector3 n, Vector2 coords, Vector3 vel)
 	{
+		EdgeContact contact;
+		contact.normal = n;
+		contact.point = p;
+		contact.i1 = i1;
+		contact.i2 = i2;
+		contact.w1 = coords.x;
+		contact.w2 = coords.y;
+		contact.vel = vel;
+		mEdgeContacts.push_back(contact);
+		return (int)(mEdgeContacts.size() - 1);
+	}
+
+	inline int ClothModel::AddTriContact(int i1, int i2, int i3, Vector3 p, Vector3 n, Vector3 bar, Vector3 vel)
+	{
+		ASSERT(bar.Length() > 0);
 		TriContact contact;
 		contact.normal = n;
 		contact.point = p;
@@ -52,7 +67,7 @@ namespace Physics
 		contact.w1 = bar.x;
 		contact.w2 = bar.y;
 		contact.w3 = bar.z;
-		contact.vel.SetZero();
+		contact.vel = vel;
 		mTriContacts.push_back(contact);
 		return (int)(mTriContacts.size() - 1);
 	}
@@ -85,5 +100,19 @@ namespace Physics
 		mBends.clear();
 		mFrames = 0;
 		mTriContacts.clear();		
+		mCacheVT.clear();
+		mCacheEE.clear();
+		mCacheTV.clear();
+		mClosestPoints.Clear();
 	}
+
+	inline void ClothModel::UpdateMesh(Geometry::Mesh& mesh, bool isQuadMesh, Vector3 position, bool usePrev)
+	{
+		for (size_t i = 0; i < mesh.vertices.size(); i++)
+		{
+			const auto& p = GetParticle(isQuadMesh ? i : mMap[i]);
+			mesh.vertices[i] = usePrev ? p.prev : p.pos + position;
+		}
+	}
+
 }

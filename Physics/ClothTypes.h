@@ -91,7 +91,13 @@ namespace Physics
 	{
 		unsigned idx; // particle index
 		Math::Vector3 point, vel;
-		float lambdaF; // friction
+		float lambdaF = 0; // friction
+	};
+
+	struct EdgeContact : Contact
+	{
+		uint32 i1, i2;
+		float w1, w2;
 	};
 
 	struct TriContact : Contact
