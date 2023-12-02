@@ -9,9 +9,9 @@
 #include "Geometry/Mesh.h"
 #include "Geometry/SDF.h"
 #include "Geometry/ClosestPointOnMesh.h"
-#include "Geometry/ClosestPointsBetweenMeshes.h"
 #include "Common.h"
 #include "ClothCollisionSDF.h"
+#include "Geometry/ClosestPointsBetweenMeshes.h"
 
 #include <memory>
 #include <set>

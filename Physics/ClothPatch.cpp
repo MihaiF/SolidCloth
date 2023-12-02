@@ -281,10 +281,7 @@ namespace Physics
 
 	void ClothPatch::UpdateMesh()
 	{
-		for (size_t i = 0; i < mMesh->vertices.size(); i++)
-		{
-			mMesh->vertices[i] = mModel->GetParticle(isQuadMesh ? i : mModel->mMap[i]).pos + mPosition;
-		}
+		mModel->UpdateMesh(*mMesh, isQuadMesh, mPosition);
 		mMesh->ComputeNormals();
 	}
 

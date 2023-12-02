@@ -166,62 +166,6 @@ namespace Physics
 		}
 	}
 
-	void ClothModelPBD::SolveTriContacts()
-	{
-		//PROFILE_SCOPE("SolveTriContactsPBD");
-		for (size_t i = 0; i < mTriContacts.size(); i++)
-		{
-			TriContact& contact = mTriContacts[i];
-			Vector3 p = contact.w1 * mParticles[contact.i1].pos + 
-				contact.w2 * mParticles[contact.i2].pos + 
-				contact.w3 * mParticles[contact.i3].pos;
-			float len0 = mThickness;
-			float len = contact.normal.Dot(p - contact.point - contact.vel);
-			if (len > len0)
-				continue;
-			// TODO: check the formula
-			float invMass = mParticles[contact.i1].invMass + mParticles[contact.i2].invMass + mParticles[contact.i3].invMass;
-			float s = 1.f / (contact.w1 * contact.w1 + contact.w2 * contact.w2 + contact.w3 * contact.w3) / invMass; // FIXME
-			float depth = len - len0;
-			Vector3 disp = (s * depth) * contact.normal;
-
-			if (mFriction != 0)
-			{
-				Vector3 p0 = contact.w1 * mParticles[contact.i1].prev + 
-					contact.w2 * mParticles[contact.i2].prev + 
-					contact.w3 * mParticles[contact.i3].prev;
-				Vector3 v12 = p - p0 - contact.vel;
-				float vnrel = contact.normal.Dot(v12);
-				Vector3 vt = v12 - vnrel * contact.normal;
-				float vtrel = vt.Length();
-
-				float lambda = vnrel + depth;
-				contact.lambda += lambda;
-				const float limit = mFriction * contact.lambda;
-
-				if (vtrel > 0.001f)
-				{
-					float dLambda = vtrel;
-					float lambda0 = contact.lambdaF;
-					contact.lambdaF = lambda0 + dLambda;
-					if (contact.lambdaF >= limit)
-						contact.lambdaF = limit;
-					dLambda = contact.lambdaF - lambda0;
-
-					vt.Scale(1.f / vtrel); // normalize
-					Vector3 p = s * dLambda * vt;
-					mParticles[contact.i1].pos += p * (contact.w1 * mParticles[contact.i1].invMass);
-					mParticles[contact.i2].pos += p * (contact.w2 * mParticles[contact.i2].invMass);
-					mParticles[contact.i3].pos += p * (contact.w3 * mParticles[contact.i3].invMass);
-				}
-			}
-
-			mParticles[contact.i1].pos -= disp * (contact.w1 * mParticles[contact.i1].invMass);
-			mParticles[contact.i2].pos -= disp * (contact.w2 * mParticles[contact.i2].invMass);
-			mParticles[contact.i3].pos -= disp * (contact.w3 * mParticles[contact.i3].invMass);
-		}
-	}
-
 	void ClothModelPBD::Step(float h)
 	{
 		// Symplectic Euler
@@ -293,6 +237,9 @@ namespace Physics
 	void ClothModelPBD::SolveGS(float h)
 	{
 		PROFILE_SCOPE("PBD GS");
+
+		auto collHandler = mOwnerPatch->GetCollisionHandler();
+		collHandler.Update();
 		
 		const float omega = 1.f;
 		for (int k = 0; true; ++k)
@@ -307,14 +254,13 @@ namespace Physics
 			}
 			if (mDihedral && k == 0)
 				SolveBends(h);
-			mOwnerPatch->GetCollisionHandler().SolveContactsPosition(h);
-			SolveTriContacts();
+			float cv = collHandler.SolveContactsPosition(h);
+			float ce = collHandler.SolveEdgeContacts();
+			float ct = collHandler.SolveTriContacts();
 
 			if (k >= mNumIterations)
 				break;
 		}
-
-		//mOwnerPatch->GetCollisionHandler().CheckContactsPosition();
 	}
 
 	inline float ComputeErrorAndNormal(Link& link, const std::vector<Particle>& particles, float unit)
