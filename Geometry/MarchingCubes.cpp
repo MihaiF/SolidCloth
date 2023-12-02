@@ -378,7 +378,7 @@ void CreateIsoSurface(Geometry::Mesh& mcMesh, std::function<float(int, int, int)
 		{
 			for (int z = 0; z < numCellsPerSide[2]; z++)
 			{
-				Vector3 org(x, y, z);
+				Vector3 org((float)x, (float)y, (float)z);
 				org.Scale(steps);
 				org += box.min;
 

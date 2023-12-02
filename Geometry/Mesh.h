@@ -59,6 +59,7 @@ namespace Geometry
 		std::vector<std::vector<int>> triOneRings;
 		std::vector<Triangle> triangles;
 
+		size_t GetNumVertices() const { return vertices.size(); }
 		size_t GetNumTriangles() const { return indices.size() / 3; }
 
 		void Clear()
@@ -113,17 +114,7 @@ namespace Geometry
 
 		void ConstructVertexBuffer();
 
-		void Transform(const Matrix4& mat, bool calcVel)
-		{
-			velocities.resize(vertices.size());
-			for (size_t i = 0; i < vertices.size(); i++)
-			{
-				Vector3 v = mat.Transform(vertices[i]);
-				if (calcVel)
-					velocities[i] = v - vertices[i];
-				vertices[i] = v;
-			}
-		}
+		void Transform(const Matrix4& mat, bool calcVel);
 
 		Vector3 GetCentroid() const
 		{
@@ -217,6 +208,14 @@ namespace Geometry
 			// first scale, then translate
 			for (size_t i = 0; i < vertices.size(); i++)
 				vertices[i] = scale * vertices[i] + offset;
+		}
+
+		void ReverseTriangleOrientation()
+		{
+			for (int i = 0; i < indices.size() / 3; i++)
+			{
+				std::swap(indices[i * 3], indices[i * 3 + 1]);
+			}
 		}
 	};
 

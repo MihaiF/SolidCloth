@@ -78,11 +78,18 @@ namespace Geometry
 				tri.e[1] = (uint32)(i - 1);
 				tri.e[0] = (uint32)(i - 2);				
 			}
+			
+			bool swapped = false;
 			if (i1 > i2)
+			{
 				std::swap(i1, i2);
+				swapped = true;
+			}
+
 			Mesh::Edge edge(i1, i2);
+			edge.swapped = swapped;
 			edge.t1 = (int)(i / 3);
-			edge.n = triangles[i / 3].n; // initially, one single normal
+			edge.n = triangles[i / 3].n; // initially, one single normal; TODO: this requires ComputeNormals!!!
 			edge.origIdx = (int)i;
 			duplicates[i] = edge;
 		}
@@ -254,6 +261,20 @@ namespace Geometry
 		}
 
 		return oldCount - newNormals.size();
+	}
+
+	void Mesh::Transform(const Matrix4& mat, bool calcVel)
+	{
+		velocities.resize(vertices.size());
+		for (size_t i = 0; i < vertices.size(); i++)
+		{
+			Vector3 v = mat.Transform(vertices[i]);
+			if (calcVel)
+				velocities[i] = v - vertices[i];
+			vertices[i] = v;
+			if (!normals.empty())
+				normals[i] = mat.TransformRay(normals[i]);
+		}
 	}
 
 }
