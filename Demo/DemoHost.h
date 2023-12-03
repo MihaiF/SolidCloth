@@ -25,5 +25,6 @@ private:
 	float timeStep = 0.016f;
 	bool mShowDebug = false;
 	int mDebugDrawFlags = 0;
-	int mDemoType = 0;
+	int mDemoType = ClothDemo::CLOTH_DEMO_MESH;
+	bool mLightFollowsCamera = true;
 };

@@ -18,7 +18,7 @@ namespace Physics
 		, mFriction(0.4f)
 		, mAlpha(0.55f)
 		, mArea(10)
-		, mNumIterations(10)
+		, mNumIterations(50)
 		, mSolver(SOLVER_GAUSS_SEIDEL)
 		, mCollFlags(0)
 		, mDihedral(true)

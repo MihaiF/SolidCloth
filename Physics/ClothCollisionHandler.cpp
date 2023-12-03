@@ -77,27 +77,6 @@ namespace Physics
 		}
 	}
 
-	void ClothCollisionHandler::DetectAndHandle(float h)
-	{
-		PROFILE_SCOPE("Decoupled collisions");
-
-		// self-collision iteration
-		uint32 numParticles = (uint32)mModel->GetNumParticles();
-		int outerIter;
-		for (outerIter = 0; outerIter < numSelfCollIterations; outerIter++)
-		{
-			// we detect the collisions, that will be put in specific arrays
-			// we know/assume that the current positions are the ones after a cloth step and the previous positions are the ones before the cloth step
-			mModel->DetectCollisions();
-
-			// now solve the contacts using a velocity approach
-			// for now use, the the same number of iterations as for PBD
-			mModel->ResetConstraints();
-			HandleContactsVelocity(h);
-			HandleContactsPosition(h);
-		}
-	}
-
 	void ClothCollisionHandler::SolveContactsVelocity(float h)
 	{
 		const float invH = 1.0f / h;
@@ -160,7 +139,7 @@ namespace Physics
 			Vector3 disp = contact.normal;
 			if (len > thickness)
 				continue;
-
+			
 			float depth = thickness - len;
 			if (depth > error)
 				error = depth;
@@ -207,7 +186,7 @@ namespace Physics
 			Particle& p1 = mModel->GetParticle(contact.i1);
 			Particle& p2 = mModel->GetParticle(contact.i2);
 			Particle& p3 = mModel->GetParticle(contact.i3);
-
+			
 #ifndef UPDATE_CLOSEST_POINT
 			Vector3 p = contact.w1 * p1.pos + contact.w2 * p2.pos + contact.w3 * p3.pos;
 #else

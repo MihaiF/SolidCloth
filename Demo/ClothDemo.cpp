@@ -12,7 +12,8 @@ using namespace Physics;
 using namespace Geometry;
 
 ClothDemo::ClothDemo()
-	: mAvatarAsset(AVATAR_ASSET_BUDDHA)
+	: mDemoType(CLOTH_DEMO_DEFAULT)
+	, mAvatarAsset(AVATAR_ASSET_BUDDHA)
 	, mHorizontal(false)
 	, mAttached(false)
 	, mSelected(-1)

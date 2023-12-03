@@ -37,4 +37,9 @@ target_include_directories(ClothDemo PRIVATE .)
 
 add_compile_definitions(USE_IMGUI)
 
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(ClothDemo PUBLIC OpenMP::OpenMP_CXX)
+endif()
+
 #target_link_libraries(ClothDemo PRIVATE freeimage::FreeImage freeimage::FreeImagePlus)

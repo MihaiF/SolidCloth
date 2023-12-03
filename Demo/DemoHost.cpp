@@ -53,6 +53,9 @@ void DemoHost::OnUpdate(float dt)
 
 void DemoHost::OnDraw3D()
 {
+	if (mLightFollowsCamera)
+		graphics3D->SetLightPos(graphics3D->camera.GetPosition());
+
 	mClothDemo.Draw(graphics3D, mShowDebug, mDebugDrawFlags);
 }
 
@@ -108,9 +111,9 @@ void DemoHost::OnDrawUI()
 		{
 			graphics3D->SetLightPos(light);
 		}
-		//ImGui::Checkbox("Light follows camera", &mLightFollowsCamera);
-		ImGui::Checkbox("Enable shadows", &drawShadows);
-		ImGui::Checkbox("Debug shadows", &drawDebugShadows);
+		ImGui::Checkbox("Light follows camera", &mLightFollowsCamera);
+		//ImGui::Checkbox("Enable shadows", &drawShadows);
+		//ImGui::Checkbox("Debug shadows", &drawDebugShadows);
 	}
 
 	mClothDemo.DrawUI();

@@ -39,7 +39,6 @@ namespace Physics
 		// constants
 		const float baumgarte = 0.2f;
 		const float threshold = 0.0001f;
-		const int numSelfCollIterations = 2;
 		const int numVelocityIterations = 20;
 		const int numPositionIterations = 0;
 
