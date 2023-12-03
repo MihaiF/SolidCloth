@@ -12,7 +12,7 @@ using namespace Physics;
 using namespace Geometry;
 
 ClothDemo::ClothDemo()
-	: mClothAsset(CLOTH_ASSET_DEFAULT)
+	: mAvatarAsset(AVATAR_ASSET_BUDDHA)
 	, mHorizontal(false)
 	, mAttached(false)
 	, mSelected(-1)
@@ -33,11 +33,12 @@ void ClothDemo::Create(int type)
 
 void ClothDemo::Init()
 {
+	mFrame = 0;
+
 	Aabb3 walls(Vector3(-60), Vector3(60));
 	mCollWorld.ClearCollidables();
 	mCollWorld.AddCollidable(std::shared_ptr<Collidable>(new Walls(walls)));
-	mHorizontal = true;
-	mAttached = false;
+
 	if (mDemoType == CLOTH_DEMO_SPHERE)
 	{
 		mCollWorld.AddCollidable(std::shared_ptr<Collidable>(new Sphere(Vector3(0, -10, 0), 25)));
@@ -66,15 +67,23 @@ void ClothDemo::Init()
 	else if (mDemoType == CLOTH_DEMO_MESH)
 	{
 		bool ret = false;
-		if (mClothAsset == CLOTH_ASSET_BUDDHA)
+		if (mAvatarAsset == AVATAR_ASSET_BUDDHA)
 		{
 			ret = LoadMesh("../Models/buddha.obj", mMesh, Vector3(0, -5, 0), 2.f);
 		}
-		else if (mClothAsset == CLOTH_ASSET_DRAGON)
+		else if (mAvatarAsset == AVATAR_ASSET_DRAGON)
 		{
 			ret = LoadMesh("../Models/dragon.obj", mMesh, Vector3(0, -80, 0), 5.f);
 		}
-		else if (mClothAsset == CLOTH_ASSET_SPHERE)
+		else if (mAvatarAsset == AVATAR_ASSET_ARMADILLO)
+		{
+			ret = LoadMesh("../Models/armadillo.obj", mMesh, Vector3(0, 0, 0), 50.f);
+		}
+		else if (mAvatarAsset == AVATAR_ASSET_TEAPOT)
+		{
+			ret = LoadMesh("../Models/teapot.obj", mMesh, Vector3(0, -10, 0), 10.f);
+		}
+		else if (mAvatarAsset == AVATAR_ASSET_SPHERE)
 		{
 			ret = LoadMesh("../Models/sphere.obj", mMesh, Vector3(0, -30, 0), 20.f);
 		}
@@ -82,31 +91,51 @@ void ClothDemo::Init()
 		{
 			ret = LoadMesh("../Models/bunny.obj", mMesh, Vector3(0, -25, 0), 2.f);
 		}
+
 		if (ret)
 		{
-			mMeshCopy = mMesh; // make a copy
-			mCollisionMesh.reset(new Physics::CollisionMesh(&mMeshCopy));
+			mMesh.ComputeNormals();
+			mMesh.ConstructEdges();
+			mMesh.ConstructEdgeOneRings();
+			mMeshCopy = mMesh; // make a copy; TODO: why
+			mCollisionMesh.reset(new CollisionMesh(&mMeshCopy));
 			mCollWorld.AddCollidable(std::shared_ptr<Collidable>(mCollisionMesh));
 		}
 		else
 			Printf("Could not load mesh\n");
-		mCloth.GetModel().SetCollisionFlags(CF_WALLS | CF_VERTICES | CF_TRIANGLES);
 	}
-	else
+
+	SetupCloth(mCloth);
+	InitCloth(mCloth, Vector3(0, 60, 10));
+
+	// this is a hack to reinitialized the collision mesh AABB tree based on new params
+	for (int i = 0; i < mCollWorld.GetNumCollidables(); i++)
+	{
+		if (mCollWorld.GetCollidable(i)->mType == CT_MESH)
+		{
+			CollisionMesh* mesh = (CollisionMesh*)mCollWorld.GetCollidable(i);
+			mesh->invalidate = true;
+		}
+	}
+}
+
+void ClothDemo::SetupCloth(ClothPatch& cloth)
+{
+	// FIXME
+	mHorizontal = true;
+	mAttached = false;
+
+	if (mDemoType == CLOTH_DEMO_DEFAULT)
 	{
 		mHorizontal = false;
 		mAttached = true;
-		mCloth.GetModel().SetCollisionFlags(0);
+		cloth.GetModel().SetCollisionFlags(0);
 	}
+}
 
-	if (mClothAsset == CLOTH_ASSET_DEFAULT || mClothAsset == CLOTH_ASSET_BUDDHA || mClothAsset == CLOTH_ASSET_BUNNY
-		|| mClothAsset == CLOTH_ASSET_DRAGON || mClothAsset == CLOTH_ASSET_SPHERE)
-	{
-		Vector3 offset(0, 30, 10);
-		if (mClothAsset == CLOTH_ASSET_BUDDHA)
-			offset.Y() += 35;
-		mCloth.Init(mDivisions, mDivisions, 80.f / mDivisions, offset, mHorizontal, mAttached);
-	}
+void ClothDemo::InitCloth(ClothPatch& cloth, Vector3 offset)
+{
+	cloth.Init(mDivisions, mDivisions, 80.f / mDivisions, offset, mHorizontal, mAttached);
 }
 
 void ComputeStrainMap(const Physics::ClothPatch& cloth, std::vector<Vector3>& colors)
@@ -173,6 +202,7 @@ void ClothDemo::DrawUI()
 	if (ImGui::CollapsingHeader("Cloth"))
 	{
 		ImGui::Checkbox("Wireframe on shaded", &mWireframeCloth);
+		ImGui::Combo("Avatar asset", &mAvatarAsset, "None\0Bunny\0Buddha\0Dragon\0Armadillo\0Teapot\0Sphere\0");
 		ImGui::InputInt("Divisions", &mDivisions);
 
 		float thickness = mCloth.GetModel().GetThickness();
@@ -196,7 +226,26 @@ void ClothDemo::DrawUI()
 		if (ImGui::Checkbox("Use FEM", &useFem))
 			mCloth.GetModel().SetFEM(useFem);
 		
-		int flags = mCloth.GetModel().GetCollisionFlags();
+		int flags = mCloth.GetModel().GetCollisionFlags();		
+		
+		bool collVertices = flags & CF_VERTICES;
+		if (ImGui::Checkbox("Vertex collisions", &collVertices))
+		{
+			if (collVertices)
+				mCloth.GetModel().SetCollisionFlags(flags | CF_VERTICES);
+			else
+				mCloth.GetModel().SetCollisionFlags(flags & ~CF_VERTICES);
+		}
+
+		bool collEdges = flags & CF_EDGES;
+		if (ImGui::Checkbox("Edge collisions", &collEdges))
+		{
+			if (collEdges)
+				mCloth.GetModel().SetCollisionFlags(flags | CF_EDGES);
+			else
+				mCloth.GetModel().SetCollisionFlags(flags & ~CF_EDGES);
+		}
+
 		bool collTriangles = flags & CF_TRIANGLES;
 		if (ImGui::Checkbox("Triangle collisions", &collTriangles))
 		{
@@ -414,7 +463,7 @@ void ClothDemo::OnMouseDown(int x, int y)
 		const Vector3& v1 = clothMesh.vertices[i1];
 		const Vector3& v2 = clothMesh.vertices[i2];
 
-		BarycentricCoords coords;
+		Vector3 coords;
 		float t;
 		if (IntersectRayTriangle(mEye, mMouse, v0, v1, v2, coords, t, mPick))
 		{

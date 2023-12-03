@@ -23,6 +23,7 @@ void DemoHost::OnCreate()
 
 void DemoHost::Reset()
 {
+	pausePhysics = true;
 	mClothDemo.Create(mDemoType);
 	mClothDemo.Init();
 }

@@ -140,6 +140,13 @@ struct Vector3T
 		Scale(1.f / len);
 	}
 
+	void NormalizeSafe()
+	{
+		Real len = Length();
+		if (len != 0)
+			Scale(1.f / len);
+	}
+
 	Vector3T Cross(const Vector3T& v) const
 	{
 		return Vector3T(Y() * v.Z() - v.Y() * Z(), -X() * v.Z() + Z() * v.X(), X() * v.Y() - v.X() * Y());

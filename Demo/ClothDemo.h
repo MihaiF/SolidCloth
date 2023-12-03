@@ -34,6 +34,10 @@ public:
 	void OnMouseDown(int x, int y);
 	void OnMouseUp(int x, int y);
 
+private:
+	void InitCloth(Physics::ClothPatch& cloth, Math::Vector3 offset);
+	void SetupCloth(Physics::ClothPatch& cloth);
+
 public:
 	enum DemoType
 	{
@@ -43,15 +47,18 @@ public:
 		CLOTH_DEMO_MESH,
 		CLOTH_DEMO_SDF,
 	};
-
-	enum ClothAsset
+	
+	enum AvatarAsset
 	{
-		CLOTH_ASSET_DEFAULT,
-		CLOTH_ASSET_BUNNY, 
-		CLOTH_ASSET_BUDDHA,
-		CLOTH_ASSET_DRAGON,
-		CLOTH_ASSET_SPHERE,
+		AVATAR_ASSET_NONE,
+		AVATAR_ASSET_BUNNY,
+		AVATAR_ASSET_BUDDHA,
+		AVATAR_ASSET_DRAGON,
+		AVATAR_ASSET_ARMADILLO,
+		AVATAR_ASSET_TEAPOT,
+		AVATAR_ASSET_SPHERE,
 	};
+	
 
 private:
 	Physics::CollisionWorld mCollWorld;
@@ -61,7 +68,7 @@ private:
 	bool mHorizontal;
 	bool mAttached;
 	int mDemoType;
-	int mClothAsset;
+	int mAvatarAsset;
 	Geometry::Mesh mMesh;
 	Geometry::Mesh mMeshCopy;
 	std::shared_ptr<Physics::CollisionMesh> mCollisionMesh;
@@ -88,6 +95,8 @@ private:
 	int mClothDraw2 = -1;
 
 	Geometry::SDF mSDF;
+
+	int mFrame = 0;
 };
 
 #endif // CLOTH_DEMO_H

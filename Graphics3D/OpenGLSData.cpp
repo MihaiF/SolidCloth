@@ -614,7 +614,7 @@ void OpenGLSData::DrawLines(std::vector<Vector3> points)
 int OpenGLSData::DrawMesh(const RenderMesh& mesh, bool useVAO, bool hasColors)
 {
 	int mapID = -1;
-	int oldFlags = -1;
+	int oldFlags = flags;
 
 	if (currProgram == &pickProgram)
 	{
@@ -625,13 +625,15 @@ int OpenGLSData::DrawMesh(const RenderMesh& mesh, bool useVAO, bool hasColors)
 	else if (!isShadowPass && mesh.mTexture != nullptr)
 	{
 		mapID = glGetUniformLocation(currProgram->programID, "map_color"); // FIXME
-		oldFlags = flags;
 		SetFlags(flags | ShaderFlags::TEXTURED);
 	}
 
+	if (hasColors)
+		SetFlags(flags | ShaderFlags::VERTEX_COLORS);
+
 	mesh.Draw(!isShadowPass ? currProgram->ModelMatrixID : shadowModelID, mapID, useVAO, hasColors);
-	if (!isShadowPass && mesh.mTexture != nullptr)
-		SetFlags(oldFlags);
+	
+	SetFlags(oldFlags);
 
 	return mDrawIndex;
 }

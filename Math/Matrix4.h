@@ -31,6 +31,8 @@ struct Matrix4
 	const float* GetData() const { return &col[0].x; }
 	float* GetWriteData() { return &col[0].x; }
 
+	float GetValue(int i, int j) const { return col[j][i]; }
+
 	Matrix4(const Vector3& r1, const Vector3& r2, const Vector3& r3, const Vector3& t)
 	{
 		col[0] = Vector4(r1);
