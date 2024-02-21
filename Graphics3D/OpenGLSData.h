@@ -190,8 +190,9 @@ private:
 	bool mScreenFBOActive = false;
 
 	int mDrawIndex = 0;
-	GLuint mPickFBO;
+	GLuint mPickFBO = 0;
 	Texture mPickMap;
+	GLuint depthTexture = 0;
 	bool mPickFBOActive = false;
 	bool isPickPass = false;
 };

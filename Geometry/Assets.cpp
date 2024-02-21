@@ -264,7 +264,7 @@ namespace Geometry
 		return input.substr(start, end - start);
 	}
 
-	std::vector<std::string> TokenSplit(const std::string& input, const char* separators)
+	std::vector<std::string> TokenSplit(const std::string& input, const char* separators, bool addEmpty = true)
 	{
 		std::vector<std::string> result;
 		size_t curr = 0;
@@ -273,7 +273,7 @@ namespace Geometry
 		{
 			std::string token = input.substr(curr, found - curr);
 			token = TrimSpaces(token);
-			//if (token.size() > 0)
+			if (addEmpty || token.size() > 0)
 				result.push_back(token);
 			curr = found + 1;
 		}
@@ -340,22 +340,9 @@ namespace Geometry
 				if (buf[1] != 't')
 				{
 					// read vertex/normal
-					Vector3 vec;
-					int counter = 0;
-					while (ptr = strchr(word, ' '))
-					{
-						if (ptr == word)
-						{
-							word++;
-							continue;
-						}
-						*ptr = '\0';
-						float x = (float)atof(word);
-						vec[counter] = x;
-						counter++;
-						word = ptr + 1;
-					}
-					vec[2] = (float)atof(word);
+					std::string line(buf);
+					auto coords = TokenSplit(line, " ", false);
+					Vector3 vec(std::stof(coords[1]), std::stof(coords[2]), std::stof(coords[3]));
 					if (buf[1] == 'n')
 						normals.push_back(vec);
 					else
@@ -366,7 +353,8 @@ namespace Geometry
 					// read UV coordinate
 					Vector2 vec;
 					int counter = 0;
-					while (ptr = strchr(word, ' '))
+					ptr = strchr(word, ' ');
+					while (ptr != nullptr)
 					{
 						if (ptr == word)
 						{
@@ -378,6 +366,7 @@ namespace Geometry
 						vec[counter] = x;
 						counter++;
 						word = ptr + 1;
+						ptr = strchr(word, ' ');
 					}
 					vec[1] = (float)atof(word);
 					uvs.push_back(vec);

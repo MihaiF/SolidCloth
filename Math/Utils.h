@@ -32,7 +32,6 @@ namespace Math
 		return (1.0f - t) * a + t * b;
 	}
 
-	//Vector3 ReadVector3(XMLElement* xPos);
 }
 
 //inline bool isnan(float x)

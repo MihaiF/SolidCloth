@@ -5,25 +5,40 @@
 
 namespace Geometry
 {
-	Math::Vector3 ComputeNormal(const Mesh& mesh, int tri, Math::Vector3 coords, bool usePseudoNormal = true);
+	Math::Vector3 ComputeTriangleNormal(const Mesh& mesh, int tri, Math::Vector3 coords, bool usePseudoNormal = true, bool useMeshNormal = true);
 
 	int ClosestVertexOnMeshToPoint(const Math::Vector3& p, const Mesh& mesh);
+
+	struct ClosestEdgeToPoint
+	{
+		Math::Vector3 closestPtMesh;
+		Math::Vector3 normal;
+		Math::Vector2 coordsMesh;
+		float distance = FLT_MAX;
+		int edge = -1;
+	};
 
 	struct ClosestTriangleToPoint
 	{
 		Math::Vector3 closestPtMesh;
 		Math::Vector3 normal;
 		Math::Vector3 baryOnMesh;
-		float distance;
-		int tri;
+		float distance = FLT_MAX;
+		int tri = -1;
+		int vtx = -1;
+		int feature = -1; // edge or vertex index
 		int region = -1;
+		int regionType = -1; // 0 - face, 1 - edge, 2 - vertex
 	};
 
-	float ClosestPointOnMeshToPoint(const Math::Vector3& p, const Mesh& mesh, ClosestTriangleToPoint& result);
+	float ClosestPointOnMeshToPoint(Math::Vector3 p, const Mesh& mesh, ClosestTriangleToPoint& result);
 
-	ClosestTriangleToPoint ClosestPointOnMeshToPoint(const Vector3& p, const Mesh& mesh, const std::vector<int>& triangles);
+	void ClosestPointsOnMeshToPoint(Math::Vector3 p, const Mesh& mesh, std::vector<ClosestTriangleToPoint>& results, float maxDist = FLT_MAX);
+
+	ClosestTriangleToPoint ClosestPointOnMeshToPoint(Vector3 p, const Mesh& mesh, const std::vector<int>& triangles);
 	
-	ClosestTriangleToPoint ClosestPointOnMeshToPointAcc(const Math::Vector3& p, const Mesh& mesh, const struct AabbTree* tree, int seed = -1);
+	ClosestTriangleToPoint ClosestPointOnMeshToPointAcc(Math::Vector3 p, const Mesh& mesh, const struct AabbTree* tree, 
+		int seed = -1, bool useDeltaNormal = true);
 
 	struct ClosestEdgeToSegment
 	{
@@ -32,13 +47,19 @@ namespace Geometry
 		Math::Vector3 normal;
 		Math::Vector2 coordsMesh;
 		Math::Vector2 coordsSegm;
+		int edge1 = -1;
 		int edge;
 		float distance;
+		int region = -1;
 	};
+
+	Math::Vector3 ComputeEdgeNormal(const Mesh& mesh, int e, float param);
 	
 	float ClosestPointOnMeshToSegment(Math::Vector3 p, Math::Vector3 q, const Geometry::Mesh& mesh, ClosestEdgeToSegment& result);
 
-	float ClosestPointOnMeshToSegmentAcc(Math::Vector3 p, Math::Vector3 q, const Mesh& mesh, const AabbTree* node, int seed, ClosestEdgeToSegment& result);
+	float ClosestPointOnMeshToSegment(Math::Vector3 p, Math::Vector3 q, const Geometry::Mesh& mesh, const std::vector<int>& edgeSet, ClosestEdgeToSegment& result);
+
+	float ClosestPointOnMeshToSegmentAcc(Math::Vector3 p, Math::Vector3 q, const Mesh& mesh, const AabbTree* tree, int seed, ClosestEdgeToSegment& result);
 
 	struct ClosestVertexToTriangle
 	{

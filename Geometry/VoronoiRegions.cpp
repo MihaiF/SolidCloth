@@ -52,28 +52,40 @@ namespace Geometry
 			e.Flip();
 
 		// compute the 2 plane normals
-		Vector3 h1 = e.Cross(mesh.triangles[mesh.edges[eID].t1].n);
-		Vector3 h2 = -e.Cross(mesh.triangles[mesh.edges[eID].t2].n);
-		h1.Normalize();
-		h2.Normalize();
+		if (mesh.edges[eID].t2 >= 0)
+		{
+			Vector3 h1 = e.Cross(mesh.triangles[mesh.edges[eID].t1].n);
+			Vector3 h2 = -e.Cross(mesh.triangles[mesh.edges[eID].t2].n);
+			h1.Normalize();
+			h2.Normalize();
 
-		//const float eps = 0.03f;
-		float dot1 = h1.Dot(p - a);
-		float dot2 = h2.Dot(p - a);
+			float dot1 = h1.Dot(p - a);
+			float dot2 = h2.Dot(p - a);
 
-		if (dot1 < -eps || dot2 < -eps)
-			return false;
+			if (dot1 < -eps || dot2 < -eps)
+				return false;
+		}
+		else
+		{
+			Vector3 h1 = e.Cross(mesh.triangles[mesh.edges[eID].t1].n);
+			h1.Normalize();
 
+			float dot1 = h1.Dot(p - a);
+
+			if (dot1 < -eps)
+				return false;
+		}
 		return true;
 	}
 
 	bool TestPointInVertexVoronoiRegion(Vector3 p, const Mesh& mesh, int vID)
 	{
-		auto oneRing = mesh.edgeOneRings[vID];
+		ASSERT(mesh.edgeOneRings.size() > 0);
+		auto edgeOneRing = mesh.edgeOneRings[vID];
 		Vector3 v = mesh.vertices[vID];
-		for (int i = 0; i < oneRing.size(); i++)
+		for (int i = 0; i < edgeOneRing.size(); i++)
 		{
-			const Mesh::Edge& edge = mesh.edges[oneRing[i]];
+			const Mesh::Edge& edge = mesh.edges[edgeOneRing[i]];
 			Vector3 v1 = mesh.vertices[edge.i1];
 			Vector3 v2 = mesh.vertices[edge.i2];
 			Vector3 e = v1 - v2;

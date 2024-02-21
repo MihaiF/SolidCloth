@@ -3,7 +3,6 @@
 
 #include <Graphics2D/Graphics.h>
 #include <Engine/Types.h>
-//#include <Graphics3D/Bodies.h>
 #include <Math/Matrix4.h>
 #include <Math/Vector2.h>
 #include <Graphics3D/Camera.h>
@@ -44,8 +43,6 @@ public: // TODO: private
 	int mouseX, mouseY;
 	bool mousePressed;
 
-	//Bodies bodies;
-
 	float fov, n, f;
 
 #if defined(_WIN32) && (RENDERER3D == OPENGL)
@@ -80,8 +77,6 @@ public:
 	void MouseMove(int x, int y);
 	void MouseUp(int x, int y);
 	void MouseWheel(float delta);
-
-	//Bodies& GetBodies() { return bodies; }
 
 	void DrawPlane(const Vector3& plane, float scale, Texture* tex = nullptr);
 	int DrawSphere(const Vector3& pos, float radius);

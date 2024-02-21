@@ -8,6 +8,7 @@ DemoHost::DemoHost()
 	is3D = true;
 	enablePicking = true;
 	graphics->SetBgColor(0xff9f9f9f);
+	drawFps = true;
 }
 
 void DemoHost::OnCreate()

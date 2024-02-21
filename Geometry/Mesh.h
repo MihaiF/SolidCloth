@@ -16,7 +16,6 @@ namespace Geometry
 			Vector3 n;
 			uint32 i1, i2; // vertex indices
 			int t1, t2; // triangles indices (winged edge)
-			//Aabb3 box; // hack for AABB tree based self collision
 			int count; // multiplicity
 			int origIdx;
 			bool swapped = false; // whether the edge is aligned with T1 or T2
@@ -216,6 +215,46 @@ namespace Geometry
 			{
 				std::swap(indices[i * 3], indices[i * 3 + 1]);
 			}
+		}
+
+		Aabb3 TriangleBox(int tri) const
+		{
+			int i1 = indices[tri * 3 + 0];
+			int i2 = indices[tri * 3 + 1];
+			int i3 = indices[tri * 3 + 2];
+			const Vector3& v1 = vertices[i1];
+			const Vector3& v2 = vertices[i2];
+			const Vector3& v3 = vertices[i3];
+			Vector3 minV = vmin(vmin(v1, v2), v3);
+			Vector3 maxV = vmax(vmax(v1, v2), v3);
+			return Aabb3(minV, maxV);
+		}
+
+		// check if 2 vertices are connected by an edge
+		bool AreAdjacent(int i1, int i2) const
+		{
+			for (int i = 0; i < vtxOneRings[i1].size(); i++)
+			{
+				if (vtxOneRings[i1][i] == i2)
+					return true;
+			}
+			return false;
+		}
+
+		bool IsBorderEdge(int e) const
+		{
+			return edges[e].t2 >= 0;
+		}
+
+		bool IsBorderVertex(int v) const
+		{
+			// incident to at least one border edg
+			for (int i = 0; i < edgeOneRings[v].size(); i++)
+			{
+				if (IsBorderEdge(edgeOneRings[v][i]))
+					return true;
+			}
+			return false;
 		}
 	};
 

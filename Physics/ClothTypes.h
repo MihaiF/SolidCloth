@@ -5,6 +5,11 @@
 #include <Math/Vector3.h>
 #include <Math/Vector2.h>
 
+namespace Geometry
+{
+	struct Mesh;
+}
+
 namespace Physics
 {
 	struct Particle
@@ -89,9 +94,11 @@ namespace Physics
 
 	struct Contact : Constraint
 	{
-		unsigned idx; // particle index
 		Math::Vector3 point, vel;
 		float lambdaF = 0; // friction
+		unsigned idx; // particle index
+		int feature = -1;
+		const Geometry::Mesh* mesh = nullptr;
 	};
 
 	struct EdgeContact : Contact

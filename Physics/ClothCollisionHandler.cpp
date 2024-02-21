@@ -2,6 +2,8 @@
 #include "Engine/Profiler.h"
 #include "ClothModel.h"
 
+#define UPDATE_CLOSEST_POINT
+
 namespace Physics
 {
 	ClothCollisionHandler::ClothCollisionHandler(const CollisionWorld& world) : mModel(nullptr), mCollWorld(world)
@@ -134,6 +136,23 @@ namespace Physics
 		{
 			Contact& contact = mModel->GetContact(i);
 			Particle& p1 = mModel->GetParticle(contact.idx);
+#ifdef UPDATE_CLOSEST_POINT
+			if (contact.mesh != nullptr)
+			{
+				// TODO: Voronoi region test
+				Vector3 coords, cp;
+				int tri = contact.feature;
+				int i1 = contact.mesh->indices[tri * 3];
+				int i2 = contact.mesh->indices[tri * 3 + 1];
+				int i3 = contact.mesh->indices[tri * 3 + 2];
+				Vector3 a = contact.mesh->vertices[i1];
+				Vector3 b = contact.mesh->vertices[i2];
+				Vector3 c = contact.mesh->vertices[i3];
+				int region = Geometry::ClosestPtPointTriangle(p1.pos, a, b, c, cp, coords);
+				contact.point = cp;
+				contact.normal = Geometry::ComputeTriangleNormal(*contact.mesh, tri, coords, false);
+			}
+#endif
 			Vector3 delta = p1.pos - contact.point;
 			float len = delta.Dot(contact.normal);
 			Vector3 disp = contact.normal;
@@ -141,8 +160,8 @@ namespace Physics
 				continue;
 			
 			float depth = thickness - len;
-			if (depth > error)
-				error = depth;
+			if (fabs(depth) > error) // maximum error
+				error = fabs(depth);
 			float dLambda = depth;
 			contact.lambda += dLambda;
 			disp.Scale(dLambda);
@@ -198,11 +217,16 @@ namespace Physics
 			contact.w1 = coords.x;
 			contact.w2 = coords.y;
 			contact.w3 = coords.z;
-			// TODO: get the actual vertex index in the mesh for contact.point
 			Vector3 n = -(p2.pos - p1.pos).Cross(p3.pos - p1.pos); // triangle normal (for now)
 			n.Normalize();
 			contact.normal = n; // the normal from closest points is a disaster (creates penetrations)
-			// for some reason, updating isn't more stable than not doing it (maybe if we get a better normal though)
+			if (contact.mesh != nullptr && contact.feature >= 0)
+			{
+				// TODO: figure out why I can't use the mesh normal directly
+				Vector3 meshNormal = contact.mesh->normals[contact.feature];
+				if (n.Dot(meshNormal) < 0)
+					contact.normal = -n;
+			}
 #endif
 
 			float len0 = mModel->GetThickness();
@@ -266,14 +290,21 @@ namespace Physics
 			Particle& p1 = mModel->GetParticle(contact.i1);
 			Particle& p2 = mModel->GetParticle(contact.i2);
 
-#ifndef UPDATE_CLOSEST_POINT
 			Vector3 p = contact.w1 * p1.pos + contact.w2 * p2.pos;
-#else
-			// TODO: use the actual segment on the mesh; Voronoi region check
-			float t;
-			Vector3 p = Geometry::ClosestPtSegm(contact.point, p1.pos, p2.pos, t);
-			contact.w1 = 1.0f - t;
-			contact.w2 = t;
+#ifdef UPDATE_CLOSEST_POINT
+			if (contact.mesh != nullptr)
+			{
+				// TODO: Voronoi region check
+				float s1, t;
+				int edge = contact.feature;
+				int i1 = contact.mesh->edges[edge].i1;
+				int i2 = contact.mesh->edges[edge].i2;
+				Vector3 a = contact.mesh->vertices[i1];
+				Vector3 b = contact.mesh->vertices[i2];
+				Geometry::ClosestPtSegmSegm(a, b, p1.pos, p2.pos, s1, t, contact.point, p);
+				contact.w1 = 1.0f - t;
+				contact.w2 = t;
+			}
 #endif
 
 			float len0 = mModel->GetThickness();
@@ -281,8 +312,8 @@ namespace Physics
 			if (len > len0)
 				continue;
 
-			float s = 1.f / (contact.w1 * contact.w1 / p1.invMass +
-				contact.w2 * contact.w2 / p2.invMass);
+			ASSERT(contact.w1 + contact.w2 > 0);
+			float s = 1.f / (contact.w1 * contact.w1 / p1.invMass +	contact.w2 * contact.w2 / p2.invMass);
 			float depth = len0 - len;
 			if (depth > error)
 				error = depth;
@@ -321,6 +352,167 @@ namespace Physics
 			p2.pos += disp * (contact.w2 * p2.invMass);
 		}
 
+		return error;
+	}
+
+	float ClothCollisionHandler::SolveSelfTrisPosition(float h)
+	{
+		const float shrink = .9f;
+		const float soften = .9f;
+		float len0 = mModel->GetThickness() * shrink;
+		float mu = mModel->GetFriction();
+		float error = 0;
+		for (size_t i = 0; i < mModel->GetNumSelfTris(); i++)
+		{
+			SelfContact& contact = mModel->GetSelfTriangle(i);
+			Particle& p1 = mModel->GetParticle(contact.i1);
+			Particle& p2 = mModel->GetParticle(contact.i2);
+			Particle& p3 = mModel->GetParticle(contact.i3);
+			Particle& p4 = mModel->GetParticle(contact.i4);
+
+			Vector3 p, coords;
+			int region = Geometry::ClosestPtPointTriangle(p4.pos, p1.pos, p2.pos, p3.pos, p, coords);
+			contact.w1 = coords.x;
+			contact.w2 = coords.y;
+			contact.w3 = coords.z;
+			//Vector3 p = contact.w1 * p1.pos + contact.w2 * p2.pos + contact.w3 * p3.pos;
+			Vector3 delta = p4.pos - p;
+
+			Vector3 n = delta;
+			//if (region == Geometry::TR_FACE_INTERIOR || delta.Length() < 1e-5f)
+				n = (p2.pos - p1.pos).Cross(p3.pos - p1.pos);
+			n.Normalize();
+			if (n.Dot(contact.normal) < 0)
+				n = -n;
+
+			float len = n.Dot(delta);
+
+			if (len > len0)
+				continue;
+
+			float invMass = contact.w1 * contact.w1 * p1.invMass + contact.w2 * contact.w2 * p2.invMass +
+				contact.w3 * contact.w3 * p3.invMass + p4.invMass;
+			float s = 1.f / invMass;
+			float err = len - len0; // negative!
+			float absErr = fabs(err);
+			if (absErr > error)
+				error = absErr;
+			float dLambda = soften * s * err;
+
+			// the normal displacement
+			Vector3 disp = dLambda * n;
+			contact.lambda += -dLambda / h;
+
+			//Vector3 vel = contact.w1 * p1.vel + contact.w2 * p2.vel + contact.w3 * p3.vel;
+			//Vector3 deltaV = vel - p4.vel;
+			//float vrel = contact.normal.Dot(deltaV);
+
+			// friction
+			//Vector3 vt = deltaV - vrel * contact.normal;
+			//float slip = vt.Length();
+			//if (fabs(slip) > 0.001f)
+			//{
+			//	Vector3 tanDir = (1.f / slip) * vt;
+			//	float limit = mu * contact.lambda;
+
+			//	float lambdaF0 = contact.lambdaF;
+			//	contact.lambdaF += slip * s;
+			//	if (contact.lambdaF > limit)
+			//		contact.lambdaF = limit;
+			//	float dLambdaF = contact.lambdaF - lambdaF0;
+
+			//	Vector3 impF = dLambdaF * tanDir;
+			//	disp += -h * impF;
+			//}
+
+			p1.pos += disp * (contact.w1 * p1.invMass);
+			p2.pos += disp * (contact.w2 * p2.invMass);
+			p3.pos += disp * (contact.w3 * p3.invMass);
+			p4.pos -= disp * (p4.invMass);
+		}
+		return error;
+	}
+
+
+	float ClothCollisionHandler::SolveSelfEdgesPosition(float h)
+	{
+		float shrink = .9f;
+		float soften = .9f;
+		float thickness = mModel->GetThickness() * shrink;
+		float mu = mModel->GetFriction();
+		float error = 0;
+		for (size_t i = 0; i < mModel->GetNumSelfEdges(); i++)
+		{
+			SelfContact& contact = mModel->GetSelfEdge(i);
+			Particle& p1 = mModel->GetParticle(contact.i1);
+			Particle& p2 = mModel->GetParticle(contact.i2);
+			Particle& p3 = mModel->GetParticle(contact.i3);
+			Particle& p4 = mModel->GetParticle(contact.i4);
+
+			Vector3 p, q;
+			float t1, t2;
+			Geometry::ClosestPtSegmSegm(p1.pos, p2.pos, p3.pos, p4.pos, t1, t2, p, q);
+			contact.w1 = 1 - t1;
+			contact.w2 = 1 - t2;
+
+			float omw1 = 1.f - contact.w1;
+			float omw2 = 1.f - contact.w2;
+
+			//Vector3 p = contact.w1 * p1.pos + omw1 * p2.pos;
+			//Vector3 q = contact.w2 * p3.pos + omw2 * p4.pos;
+			Vector3 delta = q - p;
+			Vector3 n = delta;
+			n.Normalize();
+			if (n.Dot(contact.normal) < 0)
+			{
+				n = -n;
+			}
+
+			float len = n.Dot(delta);
+			if (len > thickness)
+				continue;
+			float invMass = contact.w1 * contact.w1 * p1.invMass + omw1 * omw1 * p2.invMass
+				+ contact.w2 * contact.w2 * p3.invMass + omw2 * omw2 * p4.invMass;
+			float s = 1.f / invMass;
+			
+			float err = len - thickness;
+			float absErr = fabs(err);
+			if (absErr > error)
+				error = absErr;
+			float dLambda = -soften * s * err;
+			contact.lambda += dLambda / h;
+
+			// the normal displacement
+			Vector3 disp = dLambda * n;
+
+			// friction
+			//Vector3 vp = p1.vel + contact.w1 * (p2.vel - p1.vel);
+			//Vector3 vq = p3.vel + contact.w2 * (p4.vel - p3.vel);
+			//Vector3 deltaV = vp - vq;
+			//float vrel = contact.normal.Dot(deltaV);
+			//Vector3 vt = deltaV - vrel * contact.normal;
+			//float slip = vt.Length();
+			//if (fabs(slip) > 0.001f)
+			//{
+			//	Vector3 tanDir = (1.f / slip) * vt;
+			//	float limit = mu * contact.lambda;
+
+			//	float lambdaF0 = contact.lambdaF;
+			//	contact.lambdaF += slip * s;
+			//	if (contact.lambdaF > limit)
+			//		contact.lambdaF = limit;
+			//	float dLambdaF = contact.lambdaF - lambdaF0;
+
+			//	// the friction impulse
+			//	Vector3 impF = dLambdaF * tanDir;
+			//	disp += impF * h;
+			//}
+
+			p1.pos -= disp * (omw1 * p1.invMass);
+			p2.pos -= disp * (contact.w1 * p2.invMass);
+			p3.pos += disp * (omw2 * p3.invMass);
+			p4.pos += disp * (contact.w2 * p4.invMass);
+		}
 		return error;
 	}
 

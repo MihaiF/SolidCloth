@@ -672,10 +672,12 @@ int OpenGLSData::DrawMesh(const std::vector<Vector3>& vertices, const std::vecto
 
 	mMesh.SetVertexData(vertices);
 	mMesh.SetNormalData(normals);
-	mMesh.SetUVData(uvs);
 	mMesh.SetIndexData(indices);
 	if (uvs.size() != 0)
+	{
+		mMesh.SetUVData(uvs);
 		mMesh.SetTexture(tex);
+	}
 	mMesh.SetTransform(model);
 
 	return DrawMesh(mMesh, false, false);
@@ -1195,6 +1197,9 @@ void RenderMesh::Draw(int modelID, int mapID, bool useVAO, bool hasColors) const
 
 bool OpenGLSData::InitScreenMap()
 {
+	if (!mScreenFBOActive)
+		return true;
+
 	glGenFramebuffers(1, &mScreenFBO);
 	glBindFramebuffer(GL_FRAMEBUFFER, mScreenFBO);
 
@@ -1226,7 +1231,11 @@ bool OpenGLSData::InitScreenMap()
 
 bool OpenGLSData::InitPickMap()
 {
-	glGenFramebuffers(1, &mPickFBO);
+	if (!mPickFBOActive)
+		return true;
+
+	if (mPickFBO <= 0)
+		glGenFramebuffers(1, &mPickFBO);
 	glBindFramebuffer(GL_FRAMEBUFFER, mPickFBO);
 
 	mPickMap.Create(mWidth, mHeight);
@@ -1236,7 +1245,11 @@ bool OpenGLSData::InitPickMap()
 	// TODO: create depth texture in Texture
 
 	// Depth texture. Slower than a depth buffer, but you can sample it later in your shader
-	GLuint depthTexture;
+	if (depthTexture > 0)
+	{
+		glDeleteTextures(1, &depthTexture);
+		depthTexture = 0;
+	}
 	glGenTextures(1, &depthTexture);
 	glBindTexture(GL_TEXTURE_2D, depthTexture);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, mWidth, mHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
@@ -1283,6 +1296,9 @@ void OpenGLSData::DrawToFBO()
 
 void OpenGLSData::DrawToPickFBO()
 {
+	if (!mPickFBOActive)
+		return;
+
 	isPickPass = true;
 	glBindFramebuffer(GL_FRAMEBUFFER, mPickFBO);
 	glClearColor(0, 0, 0, 1);
@@ -1297,8 +1313,6 @@ void OpenGLSData::DrawToPickFBO()
 
 uint32 OpenGLSData::ReadPickPixel(unsigned int x, unsigned int y)
 {
-	if (!mPickFBOActive)
-		return 0;
 
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, mPickFBO);
 	glReadBuffer(GL_COLOR_ATTACHMENT0);

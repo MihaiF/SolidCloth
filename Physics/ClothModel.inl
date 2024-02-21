@@ -30,18 +30,20 @@ namespace Physics
 		mLinks.push_back(link);
 	}
 
-	inline int ClothModel::AddContact(size_t idx, Vector3 p, Vector3 n, Vector3 vel)
+	inline int ClothModel::AddContact(size_t idx, Vector3 p, Vector3 n, Vector3 vel, int tri, const Geometry::Mesh* mesh)
 	{
 		Contact contact;
 		contact.idx = (unsigned)idx;
 		contact.point = p;
 		contact.normal = n;
 		contact.vel = vel;
+		contact.feature = tri;
+		contact.mesh = mesh;
 		mContacts.push_back(contact);
 		return (int)(mContacts.size() - 1);
 	}
 
-	inline int ClothModel::AddEdgeContact(int i1, int i2, Vector3 p, Vector3 n, Vector2 coords, Vector3 vel)
+	inline int ClothModel::AddEdgeContact(int i1, int i2, Vector3 p, Vector3 n, Vector2 coords, Vector3 vel, int edge, const Geometry::Mesh* mesh)
 	{
 		EdgeContact contact;
 		contact.normal = n;
@@ -50,12 +52,14 @@ namespace Physics
 		contact.i2 = i2;
 		contact.w1 = coords.x;
 		contact.w2 = coords.y;
+		contact.feature = edge;
+		contact.mesh = mesh;
 		contact.vel = vel;
 		mEdgeContacts.push_back(contact);
 		return (int)(mEdgeContacts.size() - 1);
 	}
 
-	inline int ClothModel::AddTriContact(int i1, int i2, int i3, Vector3 p, Vector3 n, Vector3 bar, Vector3 vel)
+	inline int ClothModel::AddTriContact(int i1, int i2, int i3, Vector3 p, Vector3 n, Vector3 bar, Vector3 vel, int vtx, const Geometry::Mesh* mesh)
 	{
 		ASSERT(bar.Length() > 0);
 		TriContact contact;
@@ -68,6 +72,8 @@ namespace Physics
 		contact.w2 = bar.y;
 		contact.w3 = bar.z;
 		contact.vel = vel;
+		contact.feature = vtx;
+		contact.mesh = mesh;
 		mTriContacts.push_back(contact);
 		return (int)(mTriContacts.size() - 1);
 	}
@@ -99,7 +105,9 @@ namespace Physics
 		mTriangles.clear();
 		mBends.clear();
 		mFrames = 0;
-		mTriContacts.clear();		
+		mSelfEdges.clear();
+		mSelfTris.clear();
+		mTriContacts.clear();
 		mCacheVT.clear();
 		mCacheEE.clear();
 		mCacheTV.clear();
@@ -113,6 +121,16 @@ namespace Physics
 			const auto& p = GetParticle(isQuadMesh ? i : mMap[i]);
 			mesh.vertices[i] = usePrev ? p.prev : p.pos + position;
 		}
+	}
+
+	inline bool ClothModel::CheckSignal()
+	{
+		if (mSignal)
+		{
+			mSignal = false;
+			return true;
+		}
+		return false;
 	}
 
 }

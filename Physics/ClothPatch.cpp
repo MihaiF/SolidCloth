@@ -7,7 +7,7 @@ using namespace Geometry;
 namespace Physics
 {
 	ClothPatch::ClothPatch(const CollisionWorld& world) : 
-		isQuadMesh(true),
+		mIsQuadMesh(true),
 		mNumSteps(1), 
 		mMesh(new Mesh()), 
 		mCollWorld(world),
@@ -19,7 +19,7 @@ namespace Physics
 
 	ClothPatch& ClothPatch::operator =(const ClothPatch& other)
 	{
-		isQuadMesh = other.isQuadMesh;
+		mIsQuadMesh = other.mIsQuadMesh;
 		mMesh = other.mMesh;
 		mPosition = other.mPosition;
 		mMethod = other.mMethod;
@@ -44,10 +44,10 @@ namespace Physics
 		if (mesh.vertices.size() == 0 || mesh.indices.size() == 0)
 			return;
 
-		isQuadMesh = false;
+		mIsQuadMesh = false;
 		*mMesh = mesh;
 
-		// TODO: optimize
+		// TODO: abolish this! and remove the map
 		// remove duplicate vertices
 		mModel->Clear();
 		std::vector<int>& map = mModel->mMap;
@@ -119,10 +119,12 @@ namespace Physics
 				continue;
 			}
 			mModel->AddLink(duplicates[i].i1, duplicates[i].i2, mModel->GetStretchStiffness());
+			mMesh->edges.push_back(currEdge);
 			mModel->AddEdge(currEdge);
 			mModel->AddBendConstraint(currEdge, false);
 			currEdge = duplicates[i];
 		}
+		mMesh->edges.push_back(currEdge);
 		mModel->AddEdge(currEdge);
 		mModel->AddBendConstraint(currEdge, false);
 
@@ -133,8 +135,7 @@ namespace Physics
 	{
 		mMesh->Clear();
 
-		isQuadMesh = true;
-		ASSERT(divX > 0 && divY > 0);
+		mIsQuadMesh = true;
 		const int numParticles = divX * divY;
 		mModel->Clear();
 		mModel->SetNumParticles(numParticles);
@@ -161,6 +162,7 @@ namespace Physics
 			mModel->GetParticle(base).invMass = 1;
 			Vector2 uv(j * incUVX, 0);
 			mModel->GetParticle(base).uv.Set(x, 0);
+			mMesh->vertices[base] = mModel->GetParticle(base).pos;
 			mMesh->uvs[base] = uv;
 			if (base >= divY)
 			{
@@ -181,6 +183,7 @@ namespace Physics
 				mModel->GetParticle(idx).invMass = 1;
 				Vector2 uv(j * incUVX, i * incUVY);
 				mModel->GetParticle(idx).uv.Set(x, inc * i);
+				mMesh->vertices[idx] = mModel->GetParticle(idx).pos;
 				mMesh->uvs[idx] = uv;
 				if (idx > base)
 				{
@@ -222,43 +225,20 @@ namespace Physics
 			x += inc;
 		}
 
-		// build unique edges array
-		std::vector<Mesh::Edge> duplicates(mMesh->indices.size() - 1);
-		for (size_t i = 0; i < mMesh->indices.size() - 1; i++)
+		mMesh->ComputeNormals();
+		mMesh->ConstructEdges(); // construct (representative) triangles too
+		mMesh->ConstructVertexOneRings();
+		mMesh->ConstructEdgeOneRings();
+		// TODO: give up on these edges, use the mesh directly
+		for (int i = 0; i < mMesh->edges.size(); i++)
 		{
-			// construct edge
-			int i1 = mMesh->indices[i];
-			int i2 = mMesh->indices[i + 1];
-			if ((i + 1) % 3 == 0)
-			{
-				i2 = mMesh->indices[i - 2];
-			}
-			if (i1 > i2)
-				std::swap(i1, i2);
-			Mesh::Edge edge(i1, i2);
-			edge.t1 = i / 3;
-			duplicates[i] = edge;
-			//ASSERT(i1 != i2); // FIXME
+			mModel->AddEdge(mMesh->edges[i]);
+			mModel->AddBendConstraint(mMesh->edges[i], false);
 		}
-		// sort it so we can find duplicates
-		std::sort(duplicates.begin(), duplicates.end(), Geometry::CompareEdges);
-
-		Mesh::Edge currEdge = duplicates[0];
-		for (size_t i = 1; i < duplicates.size(); i++)
-		{
-			if (duplicates[i].i1 == duplicates[i - 1].i1 && duplicates[i].i2 == duplicates[i - 1].i2)
-			{
-				currEdge.t2 = duplicates[i].t1;
-				continue;
-			}
-			mModel->AddEdge(currEdge);
-			mModel->AddBendConstraint(currEdge, false);
-			currEdge = duplicates[i];
-		}
-		mModel->AddEdge(currEdge);
-		mModel->AddBendConstraint(currEdge, false);
-
 		mModel->Init();
+
+		mPrevMesh.reset(new Mesh());
+		*mPrevMesh = *mMesh;
 	}
 
 	static inline Vector3 CatmullRom(float s, const Vector3 p[])
@@ -279,10 +259,12 @@ namespace Physics
 		return x + y * n;
 	}
 
-	void ClothPatch::UpdateMesh()
+	bool ClothPatch::UpdateMesh()
 	{
-		mModel->UpdateMesh(*mMesh, isQuadMesh, mPosition);
+		mModel->UpdateMesh(*mMesh, mIsQuadMesh, mPosition);
 		mMesh->ComputeNormals();
+		mPrevMesh->ComputeNormals();
+		return mModel->CheckSignal();
 	}
 
 	void ClothPatch::ComputeMass()
@@ -333,13 +315,17 @@ namespace Physics
 		delete oldModel;
 	}
 
-	void ClothPatch::Step(float dt)
+	bool ClothPatch::Step(float dt)
 	{
 		const int n = mNumSteps;
 		const float h = dt / n;
 		for (int i = 0; i < n; i++)
 		{
 			mModel->Step(h);
+			if (mModel->CheckSignal())
+				return true;
 		}
+
+		return false;
 	}
 }

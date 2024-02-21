@@ -62,10 +62,15 @@ namespace Geometry
 	{
 		if (indices.empty())
 			return false;
+
+		edges.clear();
+
 		// build unique edges array
-		std::vector<Mesh::Edge> duplicates(indices.size());
-		triangles.resize(indices.size() / 3);
-		for (size_t i = 0; i < indices.size(); i++)
+		int numEdges = (int)indices.size() - 1;
+		std::vector<Mesh::Edge> duplicates(numEdges);
+		ASSERT(triangles.size() > 0);
+		std::vector<bool> vtxAdded(vertices.size(), false);
+		for (int i = 0; i < numEdges; i++)
 		{
 			// construct edge
 			int i1 = indices[i];
@@ -76,7 +81,7 @@ namespace Geometry
 				Triangle& tri = triangles[i / 3];
 				tri.e[2] = (uint32)i;
 				tri.e[1] = (uint32)(i - 1);
-				tri.e[0] = (uint32)(i - 2);				
+				tri.e[0] = (uint32)(i - 2);			
 			}
 			
 			bool swapped = false;
@@ -102,17 +107,24 @@ namespace Geometry
 		map[currEdge.origIdx] = 0;
 		for (size_t i = 1; i < duplicates.size(); i++)
 		{
+			// look to see if the current edge has a clone
 			if (duplicates[i].i1 == duplicates[i - 1].i1 && duplicates[i].i2 == duplicates[i - 1].i2)
 			{
+				// if yes, then point the clone to the previous edge
 				map[duplicates[i].origIdx] = (int)edges.size();
+				// prepare the current edge with the missing data: the other triangle and the edge normal
 				currEdge.t2 = duplicates[i].t1;
 				currEdge.n = triangles[currEdge.t1].n + triangles[currEdge.t2].n; // unweighted average
 				currEdge.n.Normalize();
 				continue;
 			}
+			// finally, add the complete unique manifold edge (could be border too)
 			edges.push_back(currEdge);
+			// start with a new cureent edge
 			currEdge = duplicates[i];
-			map[currEdge.origIdx] = (int)edges.size();
+			// store the mapping to the last added edge
+			int idx = (int)edges.size();
+			map[currEdge.origIdx] = idx;
 		}
 		edges.push_back(currEdge);
 

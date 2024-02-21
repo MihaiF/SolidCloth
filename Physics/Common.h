@@ -4,11 +4,11 @@
 #include <Math/Vector3.h>
 #include <Math/Quaternion.h>
 #include "Geometry/Collision3D.h"
-#include <Geometry/Mesh.h>
+#include "Geometry/Mesh.h"
+#include "Geometry/AabbTree.h"
 
 namespace Geometry
 {
-	struct AabbTree;
 	class SDF;
 }
 
@@ -117,6 +117,21 @@ namespace Physics
 		CollisionMesh(Geometry::Mesh* m) : mesh(m), tree(NULL), invalidate(false)
 		{
 			mType = CT_MESH;
+		}
+
+		void Update(float thickness, int collFlags)
+		{
+			// Compute the mesh AABB tree (if needed)
+			if (tree == NULL || invalidate)
+			{
+				if (tree != nullptr)
+					delete tree;
+				int flags = Geometry::ATF_TRIANGLES;
+				flags |= Geometry::ATF_VERTICES;
+				flags |= Geometry::ATF_EDGES;
+				tree = ComputeMeshTree(*mesh, flags, 20, thickness);
+			}
+			invalidate = false;
 		}
 	};
 

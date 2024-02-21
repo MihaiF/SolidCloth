@@ -31,9 +31,11 @@ namespace Geometry
 
 	enum EdgeRegion
 	{
-		ER_VERTEX_P2,
-		ER_VERTEX_Q2,
-		ER_EDGE2_INTERIOR,
+		ER_EDGE_INTERIOR = 0,
+		ER_VERTEX_P1 = 1,
+		ER_VERTEX_Q1 = 2,
+		ER_VERTEX_P2 = 4,
+		ER_VERTEX_Q2 = 8,
 	};
 
 	// I think this does not do projection, so it requires that p is in the (a, b, c) plane

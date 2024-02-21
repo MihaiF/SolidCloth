@@ -187,5 +187,15 @@ namespace Physics
 			mTriContacts[i].lambda = 0;
 			mTriContacts[i].lambdaF = 0;
 		}
+		for (size_t i = 0; i < mSelfTris.size(); i++)
+		{
+			mSelfTris[i].lambda = 0;
+			mSelfTris[i].lambdaF = 0;
+		}
+		for (size_t i = 0; i < mSelfEdges.size(); i++)
+		{
+			mSelfEdges[i].lambda = 0;
+			mSelfEdges[i].lambdaF = 0;
+		}
 	}
 }

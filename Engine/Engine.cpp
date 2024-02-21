@@ -119,6 +119,9 @@ void Engine::Resize(int w, int h)
 	{
 		if (!graphics3D)
 			graphics3D = new Graphics3D();
+		graphics3D->SetShadowsActive(drawShadows);
+		graphics3D->mGLS.SetScreenFBOActive(drawToTexture);
+		graphics3D->mGLS.SetPickFBOActive(enablePicking);
 		graphics3D->Resize(w, h);
 	}
 #endif
@@ -270,9 +273,6 @@ void Engine::UpdateAndDraw()
 
 	if (graphics3D)
 	{
-		graphics3D->SetShadowsActive(drawShadows);
-		graphics3D->mGLS.SetScreenFBOActive(drawToTexture);
-		graphics3D->mGLS.SetPickFBOActive(enablePicking);
 		graphics3D->Draw();
 	}
 

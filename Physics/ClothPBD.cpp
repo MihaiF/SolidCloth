@@ -19,6 +19,8 @@ namespace Physics
 			Vector3 delta = p1.pos - p2.pos;
 			const float len0 = link.len;
 			float len = delta.Length();
+			if (len == 0)
+				continue;
 			delta.Scale(1 / len);
 			float err = len - len0;
 
@@ -94,7 +96,6 @@ namespace Physics
 	void ClothModelPBD::SolveBends(float h)
 	{
 		PROFILE_SCOPE("SolveBendsPBD");
-		const float h2 = h * h;
 		for (size_t i = 0; i < mBends.size(); i++)
 		{
 			BendConstraint& bc = mBends[i];
@@ -104,32 +105,49 @@ namespace Physics
 			const Vector3& x3 = mParticles[bc.i3].pos;
 			const Vector3& x4 = mParticles[bc.i4].pos;
 
-			Vector3 x12 = x2 - x1;
+			Vector3 x12 = x2 - x1; // the edge
+			float l = x12.Length();
+
 			Vector3 x13 = x3 - x1;
 			Vector3 n1 = cross(x12, x13);
-			float l1 = bc.l1;// n1.Length();
+			float l1 = n1.Length();
 			Vector3 x14 = x4 - x1;
-			Vector3 n2 = cross(x12, x14);
-			float l2 = bc.l2; //n2.Length();
+			Vector3 n2 = cross(x14, x12);
+			float l2 = n2.Length();
 
-			float c1 = 1.f / (l1 * l2);
-			float d = n1 * n2 * c1; // cosine of angle
+			float h1 = l1 / l;
+			float h2 = l2 / l;
+			float he = 0.5f * (h1 + h2);
+
+			float il1 = 1.f / l1;
+			float il2 = 1.f / l2;
+
+			Vector3 n1n = il1 * n1;
+			Vector3 n2n = il2 * n2;
+
+			float d = dot(n1n, n2n); // cosine of angle
+
+			// project on each other's plane
+			Vector3 n1p = n1n - n2n * d;
+			Vector3 n2p = n2n - n1n * d;
+
 			d = min(1.f, max(-1.f, d));
-			ASSERT(!isnan(c1));
-			Vector3 q3 = -c1 * cross(x12, n2);
-			Vector3 q4 = -c1 * cross(x12, n1);
-			Vector3 q2 = c1 * (cross(x13, n2) + cross(x14, n1));
+			if (fabs(d) == 1)
+				continue;
+
+			Vector3 q3 = il1 * cross(x12, n2p);
+			Vector3 q4 = -il2 * cross(x12, n1p);
+			Vector3 q2 = -il1 * cross(x13, n2p) + il2 * cross(x14, n1p);
 			Vector3 q1 = -q2 - q3 - q4;
 
-			float diag = mParticles[bc.i1].invMass * q1.LengthSquared() + 
+			float diag = mParticles[bc.i1].invMass * q1.LengthSquared() +
 				mParticles[bc.i2].invMass * q2.LengthSquared() + 
 				mParticles[bc.i3].invMass * q3.LengthSquared() + 
 				mParticles[bc.i4].invMass * q4.LengthSquared();
-			float d2 = d * d;
 			float sine = sqrt(1 - d * d);
-			float arccos = sine; //PI - acos(d); // TODO: sign!
-			float s = 1.f;// / (1.f + 1.f / (diag * h2 * mBendStiff));
-			float lambda = -s * sine * arccos / diag;
+			float theta = acos(d); // TODO: sign!
+			float s = 0.002f * mBendStiff;
+			float lambda = -s * sine * theta / he / diag;
 			mParticles[bc.i1].pos += lambda * mParticles[bc.i1].invMass * q1;
 			mParticles[bc.i2].pos += lambda * mParticles[bc.i2].invMass * q2;
 			mParticles[bc.i3].pos += lambda * mParticles[bc.i3].invMass * q3;
@@ -196,7 +214,6 @@ namespace Physics
 		}
 
 		// collision detection
-		mContacts.clear();
 		DetectCollisions();
 
 		// reset constraints to zero
@@ -224,6 +241,7 @@ namespace Physics
 			projCL.ReadBuffers(mParticles);
 #endif
 		}
+
 		// update velocities
 		const float invH = 1.f / h;
 		for (size_t i = 0; i < mParticles.size(); i++)
@@ -242,6 +260,8 @@ namespace Physics
 		collHandler.Update();
 		
 		const float omega = 1.f;
+		float cv, ce, ct, sct, sce;
+		cv = ce = ct = sct = sce = 0;
 		for (int k = 0; true; ++k)
 		{
 			if (!mFEM)
@@ -252,11 +272,18 @@ namespace Physics
 			{
 				SolveTriangles(h);
 			}
-			if (mDihedral && k == 0)
+			if (mDihedral && k % 3 == 0)
 				SolveBends(h);
-			float cv = collHandler.SolveContactsPosition(h);
-			float ce = collHandler.SolveEdgeContacts();
-			float ct = collHandler.SolveTriContacts();
+			
+			cv = collHandler.SolveContactsPosition(h);
+			ce = collHandler.SolveEdgeContacts();
+			ct = collHandler.SolveTriContacts();
+			sct = collHandler.SolveSelfTrisPosition(h);
+			sce = collHandler.SolveSelfEdgesPosition(h);
+
+			const float eps = 0.01f;
+			if (k >= 50 && cv < eps && ce < eps && ct < eps && sct < eps && sce < eps)
+				break; // TODO: do something about the 50; add all constraints
 
 			if (k >= mNumIterations)
 				break;

@@ -28,21 +28,27 @@ namespace Geometry
 		else
 			s = 0.f;
 
-		int region = ER_EDGE2_INTERIOR;
+		int region = ER_EDGE_INTERIOR;
 		t = (b * s + f) / e;
 
 		if (t < 0.f)
 		{
-			region = ER_VERTEX_P2;
+			region |= ER_VERTEX_P2;
 			t = 0.f;
 			s = Math::clamp(-c / a, 0.f, 1.f);
 		}
 		else if (t > 1.f)
 		{
-			region = ER_VERTEX_Q2;
+			region |= ER_VERTEX_Q2;
 			t = 1.f;
 			s = Math::clamp((b - c) / a, 0.f, 1.f);
 		}
+
+		// for now, we use 0 and 1 as results of clamping; anything else is considered on the edge
+		if (s == 0.f)
+			region |= ER_VERTEX_P1;
+		if (s == 1.f)
+			region |= ER_VERTEX_Q1;
 
 		// epilogue
 		c1 = p1 + s * d1;
@@ -310,6 +316,17 @@ namespace Geometry
 	bool IntersectSegmentTriangle(const Vector3& p, const Vector3& q, const Vector3& a, const Vector3& b, const Vector3& c, 
 		Math::BarycentricCoords& coords, float& t, Vector3& r, bool isRay)
 	{
+		// TODO: make sure we treat the parallel case correctly
+		Vector3 ab = b - a;
+		Vector3 ac = c - a;
+		Vector3 qp = p - q;
+
+		Vector3 n = ab.Cross(ac);
+
+		float d = n.Dot(qp);
+		if (fabs(d) <= 1e-5f)
+			return false;
+
 		// this is the double sided version of the test
 		// TODO: reinstate the counter-clockwise triangle test
 
