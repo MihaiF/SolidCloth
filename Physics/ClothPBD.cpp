@@ -146,7 +146,7 @@ namespace Physics
 				mParticles[bc.i4].invMass * q4.LengthSquared();
 			float sine = sqrt(1 - d * d);
 			float theta = acos(d); // TODO: sign!
-			float s = 0.002f * mBendStiff;
+			float s = 0.004f * mBendStiff;
 			float lambda = -s * sine * theta / he / diag;
 			mParticles[bc.i1].pos += lambda * mParticles[bc.i1].invMass * q1;
 			mParticles[bc.i2].pos += lambda * mParticles[bc.i2].invMass * q2;
@@ -272,7 +272,7 @@ namespace Physics
 			{
 				SolveTriangles(h);
 			}
-			if (mDihedral && k % 3 == 0)
+			if (mDihedral)
 				SolveBends(h);
 			
 			cv = collHandler.SolveContactsPosition(h);

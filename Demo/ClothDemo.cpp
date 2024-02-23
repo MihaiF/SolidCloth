@@ -67,6 +67,7 @@ void ClothDemo::Init()
 	}
 	else if (mDemoType == CLOTH_DEMO_MESH)
 	{
+		mMesh.Clear();
 		bool ret = false;
 		if (mAvatarAsset == AVATAR_ASSET_BUDDHA)
 		{
