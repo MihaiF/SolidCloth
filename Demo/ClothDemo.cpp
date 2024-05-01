@@ -10,6 +10,7 @@
 
 using namespace Physics;
 using namespace Geometry;
+using namespace Math;
 
 ClothDemo::ClothDemo()
 	: mDemoType(CLOTH_DEMO_DEFAULT)

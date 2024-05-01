@@ -1,6 +1,6 @@
 namespace Physics
 {
-	inline void ClothModel::AddParticle(const Vector3& pos, float invMass, const Vector2& uv)
+	inline void ClothModel::AddParticle(Math::Vector3 pos, float invMass, Math::Vector2 uv)
 	{
 		Particle p;
 		p.pos = pos;
@@ -30,7 +30,8 @@ namespace Physics
 		mLinks.push_back(link);
 	}
 
-	inline int ClothModel::AddContact(size_t idx, Vector3 p, Vector3 n, Vector3 vel, int tri, const Geometry::Mesh* mesh)
+	inline int ClothModel::AddContact(size_t idx, Math::Vector3 p, Math::Vector3 n, Math::Vector3 vel, 
+		int tri, const Geometry::Mesh* mesh)
 	{
 		Contact contact;
 		contact.idx = (unsigned)idx;
@@ -43,7 +44,8 @@ namespace Physics
 		return (int)(mContacts.size() - 1);
 	}
 
-	inline int ClothModel::AddEdgeContact(int i1, int i2, Vector3 p, Vector3 n, Vector2 coords, Vector3 vel, int edge, const Geometry::Mesh* mesh)
+	inline int ClothModel::AddEdgeContact(int i1, int i2, Math::Vector3 p, Math::Vector3 n, Math::Vector2 coords, 
+		Math::Vector3 vel, int edge, const Geometry::Mesh* mesh)
 	{
 		EdgeContact contact;
 		contact.normal = n;
@@ -59,7 +61,8 @@ namespace Physics
 		return (int)(mEdgeContacts.size() - 1);
 	}
 
-	inline int ClothModel::AddTriContact(int i1, int i2, int i3, Vector3 p, Vector3 n, Vector3 bar, Vector3 vel, int vtx, const Geometry::Mesh* mesh)
+	inline int ClothModel::AddTriContact(int i1, int i2, int i3, Math::Vector3 p, Math::Vector3 n, 
+		Math::Vector3 bar, Math::Vector3 vel, int vtx, const Geometry::Mesh* mesh)
 	{
 		ASSERT(bar.Length() > 0);
 		TriContact contact;
@@ -78,7 +81,7 @@ namespace Physics
 		return (int)(mTriContacts.size() - 1);
 	}
 
-	inline void ClothModel::AddMouseSpring(int i1, int i2, int i3, const Math::BarycentricCoords& coords, const Vector3& p)
+	inline void ClothModel::AddMouseSpring(int i1, int i2, int i3, Math::Vector3 coords, Math::Vector3 p)
 	{
 		mMouseSpring.active = true;
 		mMouseSpring.len = 0; // float((mParticles[i].pos - p).Length());
@@ -103,6 +106,7 @@ namespace Physics
 		mLinks.clear();
 		mEdges.clear();
 		mTriangles.clear();
+		mQuads.clear();
 		mBends.clear();
 		mFrames = 0;
 		mSelfEdges.clear();
@@ -114,7 +118,7 @@ namespace Physics
 		mClosestPoints.Clear();
 	}
 
-	inline void ClothModel::UpdateMesh(Geometry::Mesh& mesh, bool isQuadMesh, Vector3 position, bool usePrev)
+	inline void ClothModel::UpdateMesh(Geometry::Mesh& mesh, bool isQuadMesh, Math::Vector3 position, bool usePrev)
 	{
 		for (size_t i = 0; i < mesh.vertices.size(); i++)
 		{

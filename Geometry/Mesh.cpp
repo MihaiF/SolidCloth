@@ -1,6 +1,8 @@
 #include "Mesh.h"
 #include "Engine/Utils.h"
 
+using namespace Math;
+
 #define ANGLE_WEIGHTED
 
 namespace Geometry

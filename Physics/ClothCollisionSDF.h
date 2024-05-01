@@ -11,9 +11,9 @@ struct SphereSDF
 
 	SphereSDF(const Sphere& sph) : mSphere(sph) {}
 
-	float QueryPoint(Vector3 point, Vector3& closestPt, Vector3& normal, int& feature) const
+	float QueryPoint(Math::Vector3 point, Math::Vector3& closestPt, Math::Vector3& normal, int& feature) const
 	{
-		Vector3 delta = point - mSphere.center;
+		Math::Vector3 delta = point - mSphere.center;
 		float len = delta.Length();
 		ASSERT(len != 0);
 		delta /= len;
@@ -23,11 +23,11 @@ struct SphereSDF
 		return len - mSphere.radius;
 	}
 
-	float QuerySegment(Vector3 p, Vector3 q, Vector3& closestPt, Vector3& normal, Vector2& coords, int& feature) const
+	float QuerySegment(Math::Vector3 p, Math::Vector3 q, Math::Vector3& closestPt, Math::Vector3& normal, Math::Vector2& coords, int& feature) const
 	{
 		float t;
-		Vector3 ptSegm = Geometry::ClosestPtSegm(mSphere.center, p, q, t);
-		Vector3 delta = ptSegm - mSphere.center;
+		Math::Vector3 ptSegm = Geometry::ClosestPtSegm(mSphere.center, p, q, t);
+		Math::Vector3 delta = ptSegm - mSphere.center;
 		float len = delta.Length();
 		ASSERT(len != 0);
 		delta /= len;
@@ -39,11 +39,11 @@ struct SphereSDF
 		return len - mSphere.radius;
 	}
 
-	float QueryTriangle(Vector3 a, Vector3 b, Vector3 c, Vector3& closestPt, Vector3& normal, Vector3& coords, int& feature) const
+	float QueryTriangle(Math::Vector3 a, Math::Vector3 b, Math::Vector3 c, Math::Vector3& closestPt, Math::Vector3& normal, Math::Vector3& coords, int& feature) const
 	{
-		Vector3 ptOnTri;
+		Math::Vector3 ptOnTri;
 		int region = Geometry::ClosestPtPointTriangle(mSphere.center, a, b, c, ptOnTri, coords);
-		Vector3 delta = ptOnTri - mSphere.center;
+		Math::Vector3 delta = ptOnTri - mSphere.center;
 		float len = delta.Length();
 		ASSERT(len != 0);
 		delta /= len;
@@ -57,20 +57,20 @@ struct SphereSDF
 struct CapsuleSDF
 {
 	const Capsule& mCapsule;
-	Vector3 p, q;
+	Math::Vector3 p, q;
 
 	CapsuleSDF(const Capsule& cap) : mCapsule(cap)
 	{
-		Vector3 halfDir(0, mCapsule.hh, 0);
+		Math::Vector3 halfDir(0, mCapsule.hh, 0);
 		halfDir = qRotate(mCapsule.rot, halfDir);
 		p = mCapsule.center + halfDir;
 		q = mCapsule.center - halfDir;
 	}
 
-	float QueryPoint(Vector3 point, Vector3& closestPt, Vector3& normal, int& feature) const
+	float QueryPoint(Math::Vector3 point, Math::Vector3& closestPt, Math::Vector3& normal, int& feature) const
 	{
-		Vector3 cp = GetClosestPointOnSegment(point);
-		Vector3 delta = point - cp;
+		Math::Vector3 cp = GetClosestPointOnSegment(point);
+		Math::Vector3 delta = point - cp;
 		float len = delta.Length();
 		delta /= len;
 		normal = delta;
@@ -79,13 +79,13 @@ struct CapsuleSDF
 		return len - mCapsule.r;
 	}
 
-	float QuerySegment(Vector3 a, Vector3 b, Vector3& closestPt, Vector3& normal, Vector2& coords, int& feature) const
+	float QuerySegment(Math::Vector3 a, Math::Vector3 b, Math::Vector3& closestPt, Math::Vector3& normal, Math::Vector2& coords, int& feature) const
 	{
-		Vector3 closestPtSegm, closestPtGen;
+		Math::Vector3 closestPtSegm, closestPtGen;
 		float paramSegm, paramGen;
 		Geometry::ClosestPtSegmSegm(a, b, p, q, paramSegm, paramGen, closestPtSegm, closestPtGen);
 
-		Vector3 delta = closestPtSegm - closestPtGen;
+		Math::Vector3 delta = closestPtSegm - closestPtGen;
 		float len = delta.Length();
 		delta /= len;
 
@@ -98,13 +98,13 @@ struct CapsuleSDF
 		return len - mCapsule.r;
 	}
 
-	float QueryTriangle(Vector3 a, Vector3 b, Vector3 c, Vector3& closestPt, Vector3& normal, Vector3& coords, int& feature) const
+	float QueryTriangle(Math::Vector3 a, Math::Vector3 b, Math::Vector3 c, Math::Vector3& closestPt, Math::Vector3& normal, Math::Vector3& coords, int& feature) const
 	{
 		float t;
-		Vector3 closestPtEdge, closestPtTri;
+		Math::Vector3 closestPtEdge, closestPtTri;
 		float len = Geometry::ClosestPtSegmTriangle(p, q, a, b, c, t, coords, closestPtEdge, closestPtTri);
 
-		Vector3 delta = closestPtTri - closestPtEdge;
+		Math::Vector3 delta = closestPtTri - closestPtEdge;
 		delta /= len;
 
 		normal = delta;
@@ -114,7 +114,7 @@ struct CapsuleSDF
 		return len - mCapsule.r;
 	}
 
-	Vector3 GetClosestPointOnSegment(const Vector3& point) const
+	Math::Vector3 GetClosestPointOnSegment(const Math::Vector3& point) const
 	{
 		float t;
 		return Geometry::ClosestPtSegm(point, p, q, t);
@@ -127,10 +127,10 @@ struct GridSDF
 
 	GridSDF(const Geometry::SDF& sdf) : mSDF(sdf) {}
 
-	float QueryPoint(Vector3 point, Vector3& closestPt, Vector3& normal, int& feature) const
+	float QueryPoint(Math::Vector3 point, Math::Vector3& closestPt, Math::Vector3& normal, int& feature) const
 	{
 		float val = mSDF.GetValue(point);
-		Vector3 grad = mSDF.GetGrad(point);
+		Math::Vector3 grad = mSDF.GetGrad(point);
 		grad.Normalize();
 		normal = grad;
 		closestPt = point - val * grad;
@@ -138,14 +138,14 @@ struct GridSDF
 		return val;
 	}
 
-	float QuerySegment(Vector3 a, Vector3 b, Vector3& closestPt, Vector3& normal, Vector2& coords, int&) const
+	float QuerySegment(Math::Vector3 a, Math::Vector3 b, Math::Vector3& closestPt, Math::Vector3& normal, Math::Vector2& coords, int&) const
 	{
 		// TODO: implement using Nvidia paper
 		ASSERT(false);
 		return 0;
 	}
 
-	float QueryTriangle(Vector3 a, Vector3 b, Vector3 c, Vector3& closestPt, Vector3& normal, Vector3& coords, int&) const
+	float QueryTriangle(Math::Vector3 a, Math::Vector3 b, Math::Vector3 c, Math::Vector3& closestPt, Math::Vector3& normal, Math::Vector3& coords, int&) const
 	{
 		// TODO: implement using Nvidia paper
 		ASSERT(false);
@@ -160,20 +160,20 @@ struct MeshSDF
 
 	MeshSDF(const Geometry::Mesh& mesh, const Geometry::AabbTree* tree) : mMesh(mesh), mTree(tree) {}
 
-	float QueryPoint(Vector3 point, Vector3& closestPt, Vector3& normal, int& feature) const
+	float QueryPoint(Math::Vector3 point, Math::Vector3& closestPt, Math::Vector3& normal, int& feature) const
 	{
 		Geometry::ClosestTriangleToPoint info = ClosestPointOnMeshToPointAcc(point, mMesh, mTree, feature);
 		float dist = info.distance;
 		closestPt = info.closestPtMesh;
 		normal = info.normal;
 		feature = info.tri;
-		Vector3 delta = point - closestPt;
+		Math::Vector3 delta = point - closestPt;
 		if (delta.Dot(normal) < 0)
 			dist = -dist;
 		return dist;
 	}
 
-	float QuerySegment(Vector3 a, Vector3 b, Vector3& closestPt, Vector3& normal, Vector2& coords, int& feature) const
+	float QuerySegment(Math::Vector3 a, Math::Vector3 b, Math::Vector3& closestPt, Math::Vector3& normal, Math::Vector2& coords, int& feature) const
 	{
 		Geometry::ClosestEdgeToSegment info;
 		float dist = ClosestPointOnMeshToSegmentAcc(a, b, mMesh, mTree, feature, info);
@@ -181,21 +181,21 @@ struct MeshSDF
 		normal = info.normal;
 		coords = info.coordsSegm;
 		feature = info.edge;
-		Vector3 pt = coords.x * a + coords.y * b;
-		Vector3 delta = pt - closestPt;
+		Math::Vector3 pt = coords.x * a + coords.y * b;
+		Math::Vector3 delta = pt - closestPt;
 		if (delta.Dot(normal) < 0)
 			dist = -dist;
 		return dist;
 	}
 
-	float QueryTriangle(Vector3 a, Vector3 b, Vector3 c, Vector3& closestPt, Vector3& normal, Vector3& coords, int& feature) const
+	float QueryTriangle(Math::Vector3 a, Math::Vector3 b, Math::Vector3 c, Math::Vector3& closestPt, Math::Vector3& normal, Math::Vector3& coords, int& feature) const
 	{
 		Geometry::ClosestVertexToTriangle info = ClosestPointOnMeshToTriangleAcc(a, b, c, mMesh, mTree, feature);
 		closestPt = info.closestPtMesh;
 		normal = info.normal;
 		coords = info.baryCoords;
 		feature = info.vertex;
-		Vector3 delta = info.closestPtTri - info.closestPtMesh;
+		Math::Vector3 delta = info.closestPtTri - info.closestPtMesh;
 		float dist = info.distance;
 		if (delta.Dot(normal) < 0)
 			dist = -dist;

@@ -8,7 +8,7 @@
 
 namespace Geometry
 {
-	struct Mesh;
+	class Mesh;
 
 	struct BoxInfo
 	{

@@ -30,8 +30,8 @@ namespace Physics
 	
 	struct Collidable
 	{
-		Quaternion rot;
-		Vector3 center;
+		Math::Quaternion rot;
+		Math::Vector3 center;
 		int mType;
 		int mUserIndex; // body index
 		int mGroupIndex;
@@ -44,7 +44,7 @@ namespace Physics
 
 	struct Walls : Collidable
 	{
-		Geometry::Aabb3 mBox;
+		Geometry::Aabb3 mBox; // be consistent!
 		Walls() { mType = CT_WALLS; }
 		Walls(const Geometry::Aabb3& box) : mBox(box) { mType = CT_WALLS; }
 	};
@@ -60,7 +60,7 @@ namespace Physics
 	{
 		float radius;
 		Sphere() : radius(0) { mType = CT_SPHERE; }
-		Sphere(const Vector3& c, float r) : radius(r) 
+		Sphere(Math::Vector3 c, float r) : radius(r)
 		{
 			mType = CT_SPHERE;
 			center = c;
@@ -69,15 +69,15 @@ namespace Physics
 
 	struct Box: Collidable
 	{
-		Vector3 D; // dimensions; TODO: rename
+		Math::Vector3 D; // dimensions; TODO: rename
 		Geometry::Mesh mesh; // temp
 		Box() { mType = CT_BOX; }
 		// TODO: use the mesh one
-		Geometry::Aabb3 GetAabb(const Quaternion& q, const Vector3& t) const
+		Geometry::Aabb3 GetAabb(Math::Quaternion q, Math::Vector3 t) const
 		{
-			Vector3 v = qRotate(q, mesh.vertices[0]) + t;
-			Vector3 v1 = v;
-			Vector3 v2 = v;
+			Math::Vector3 v = qRotate(q, mesh.vertices[0]) + t;
+			Math::Vector3 v1 = v;
+			Math::Vector3 v2 = v;
 			for (size_t i = 1; i < mesh.vertices.size(); i++)
 			{
 				v = qRotate(q, mesh.vertices[i]) + t;
@@ -90,17 +90,18 @@ namespace Physics
 
 	struct Capsule : Collidable
 	{
+		// TODO: clean up a bit
 		float hh; // half height (along the y axis)
 		float r; // cap radius
 		Capsule() { mType = CT_CAPSULE; }
 
-		Capsule(const Vector3& c, float rad, float halfHeight) : r(rad), hh(halfHeight)
+		Capsule(Math::Vector3 c, float rad, float halfHeight) : r(rad), hh(halfHeight)
 		{
 			mType = CT_CAPSULE;
 			center = c;
 		}
 
-		Capsule(const Vector3& c, float rad, float halfHeight, const Quaternion& quat) : r(rad), hh(halfHeight)
+		Capsule(Math::Vector3 c, float rad, float halfHeight, Math::Quaternion quat) : r(rad), hh(halfHeight)
 		{
 			mType = CT_CAPSULE;
 			center = c;
@@ -110,11 +111,11 @@ namespace Physics
 
 	struct CollisionMesh : Collidable
 	{
-		struct Geometry::Mesh* mesh;
-		Vector3 offset; // TODO: superseed by center
-		Geometry::AabbTree* tree;
+		struct Geometry::Mesh* mesh; // this is a pointer!!!
+		Math::Vector3 offset; // TODO: superseed by center
+		Geometry::AabbTree* tree = nullptr;
 		bool invalidate;
-		CollisionMesh(Geometry::Mesh* m) : mesh(m), tree(NULL), invalidate(false)
+		CollisionMesh(Geometry::Mesh* m) : mesh(m), tree(nullptr), invalidate(false)
 		{
 			mType = CT_MESH;
 		}
@@ -122,7 +123,7 @@ namespace Physics
 		void Update(float thickness, int collFlags)
 		{
 			// Compute the mesh AABB tree (if needed)
-			if (tree == NULL || invalidate)
+			if (tree == nullptr || invalidate)
 			{
 				if (tree != nullptr)
 					delete tree;
@@ -138,7 +139,7 @@ namespace Physics
 	struct CollisionSDF : Collidable
 	{
 		Geometry::SDF* sdf;
-		Geometry::Mesh isoMesh;
+		Geometry::Mesh isoMesh; // does this belong here?
 
 		CollisionSDF(Geometry::SDF* s) : sdf(s)
 		{

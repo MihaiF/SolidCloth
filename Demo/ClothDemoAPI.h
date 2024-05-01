@@ -1,10 +1,11 @@
 #ifndef CLOTH_DEMO_H
 #define CLOTH_DEMO_H
 
-#include "Physics/ClothPatch.h"
+#include "ClothAPI.h"
 #include "Geometry/SDF.h"
-#include "Physics/Common.h"
-#include "Physics/CollisionWorld.h"
+//#include "Geometry/Mesh.h"
+
+#include <memory>
 
 enum DebugDrawFlags
 {
@@ -21,10 +22,11 @@ enum DebugDrawFlags
 class Graphics3D;
 
 // 3D cloth demo
-class ClothDemo
+class ClothDemoAPI
 {
 public:
-	ClothDemo();
+	ClothDemoAPI();
+	~ClothDemoAPI();
 	void Create(int type);
 	void Init();
 	void Draw(Graphics3D* graphics3D, bool showDebug, int debugDrawFlags);
@@ -35,8 +37,8 @@ public:
 	void OnMouseUp(int x, int y);
 
 private:
-	void InitCloth(Physics::ClothPatch& cloth, Math::Vector3 offset);
-	void SetupCloth(Physics::ClothPatch& cloth);
+	void InitCloth(scClothPatch cloth, Math::Vector3 offset);
+	void SetupCloth(scClothPatch cloth);
 
 public:
 	enum DemoType
@@ -61,17 +63,16 @@ public:
 	
 
 private:
-	Physics::CollisionWorld mCollWorld;
-	Physics::ClothPatch mCloth;
-	
+	scCollisionWorld mCollWorld;
+	scClothPatch mCloth;
+
 	int mDivisions;
 	bool mHorizontal;
 	bool mAttached;
 	int mDemoType;
 	int mAvatarAsset;
 	Geometry::Mesh mMesh;
-	Geometry::Mesh mMeshCopy;
-	std::shared_ptr<Physics::CollisionMesh> mCollisionMesh;
+	Geometry::Mesh mIsoMesh; // for SDF
 	
 	// mouse picking
 	Math::Vector3 mMouse;

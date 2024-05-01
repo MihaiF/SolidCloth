@@ -10,6 +10,7 @@
 #define EDGE_CCD
 
 using namespace Geometry;
+using namespace Math;
 
 namespace Physics
 {
@@ -221,7 +222,7 @@ namespace Physics
 		}
 	}
 
-	void ClothModel::SphereCollisions(const Vector3& sphPos, float sphRad)
+	void ClothModel::SphereCollisions(Vector3 sphPos, float sphRad)
 	{
 		const float radTol = mThickness + mTolerance;
 		Vector3 n, p;

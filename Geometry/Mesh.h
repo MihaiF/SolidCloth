@@ -9,11 +9,12 @@
 
 namespace Geometry
 {
-	struct Mesh
+	class Mesh
 	{
+	public:
 		struct Edge
 		{
-			Vector3 n;
+			Math::Vector3 n;
 			uint32 i1, i2; // vertex indices
 			int t1, t2; // triangles indices (winged edge)
 			int count; // multiplicity
@@ -26,7 +27,7 @@ namespace Geometry
 		struct Triangle
 		{
 			uint32 e[3];
-			Vector3 n;
+			Math::Vector3 n;
 		};
 
 		struct BoneWeight
@@ -39,19 +40,18 @@ namespace Geometry
 		{
 			enum { MAX_WEIGHTS = 10 };
 			BoneWeight bw[MAX_WEIGHTS];
-			// TODO: operator[]
 		};
 
-		std::vector<Vector3> vertices;
+		std::vector<Math::Vector3> vertices;
 		std::vector<uint32> indices;
-		std::vector<Vector3> normals;
-		std::vector<Vector3> tangents;
-		std::vector<Vector3> bitangents;
-		std::vector<Vector2> uvs;
-		std::vector<Vector3> colors; // TODO: Vector4
+		std::vector<Math::Vector3> normals;
+		std::vector<Math::Vector3> tangents;
+		std::vector<Math::Vector3> bitangents;
+		std::vector<Math::Vector2> uvs;
+		std::vector<Math::Vector3> colors; // TODO: Vector4
 		std::vector<Edge> edges;
 		std::vector<Weights> weights;
-		std::vector<Vector3> velocities; // remove?
+		std::vector<Math::Vector3> velocities; // remove?
 		std::vector<double> pressures; //TODO: to be removed; should be "real" not double
 		std::vector<std::vector<int>> vtxOneRings;
 		std::vector<std::vector<int>> edgeOneRings;
@@ -80,11 +80,15 @@ namespace Geometry
 			triangles.clear();
 		}
 
-		uint32 AddVertex(const Vector3& v, bool check = false)
+		uint32 AddVertex(const Math::Vector3& v, bool check = false)
 		{
 			if (check)
 			{
-				std::vector<Vector3>::iterator it = std::find_if(vertices.begin(), vertices.end(), [&v](const Vector3& t) { return std::abs(t.x - v.x) < 0.00001f && std::abs(t.y - v.y) < 0.00001f && std::abs(t.z - v.z) < 0.00001f; });
+				std::vector<Math::Vector3>::iterator it = std::find_if(vertices.begin(), vertices.end(), 
+					[&v](const Math::Vector3& t) 
+					{
+						return std::abs(t.x - v.x) < 0.00001f && std::abs(t.y - v.y) < 0.00001f && std::abs(t.z - v.z) < 0.00001f; 
+					});
 				if (it != vertices.end())
 				{
 					return uint32(std::distance(vertices.begin(), it));
@@ -111,13 +115,11 @@ namespace Geometry
 
 		void ComputeNormals(bool flip = false);
 
-		void ConstructVertexBuffer();
+		void Transform(const Math::Matrix4& mat, bool calcVel);
 
-		void Transform(const Matrix4& mat, bool calcVel);
-
-		Vector3 GetCentroid() const
+		Math::Vector3 GetCentroid() const
 		{
-			Vector3 c;
+			Math::Vector3 c;
 			for (size_t i = 0; i < vertices.size(); i++)
 			{
 				c += vertices[i];
@@ -126,7 +128,7 @@ namespace Geometry
 			return c;
 		}
 
-		void GetBoundingSphere(Vector3& c, float& r)
+		void GetBoundingSphere(Math::Vector3& c, float& r)
 		{
 			c = GetCentroid();
 			r = 0;
@@ -149,9 +151,9 @@ namespace Geometry
 		{
 			if (vertices.empty())
 				return Aabb3();
-			Vector3 v = vertices[0];
-			Vector3 v1 = v;
-			Vector3 v2 = v;
+			Math::Vector3 v = vertices[0];
+			Math::Vector3 v1 = v;
+			Math::Vector3 v2 = v;
 			for (size_t i = 1; i < vertices.size(); i++)
 			{
 				v = vertices[i];
@@ -161,11 +163,11 @@ namespace Geometry
 			return Aabb3(v1, v2);
 		}
 
-		Aabb3 GetAabb(const Quaternion& q, const Vector3& t) const
+		Aabb3 GetAabb(Math::Quaternion q, Math::Vector3 t) const
 		{
-			Vector3 v = qRotate(q, vertices[0]) + t;
-			Vector3 v1 = v;
-			Vector3 v2 = v;
+			Math::Vector3 v = qRotate(q, vertices[0]) + t;
+			Math::Vector3 v1 = v;
+			Math::Vector3 v2 = v;
 			for (size_t i = 1; i < vertices.size(); i++)
 			{
 				v = qRotate(q, vertices[i]) + t;
@@ -175,11 +177,11 @@ namespace Geometry
 			return Aabb3(v1, v2);
 		}
 
-		Aabb3 GetAabb(const Matrix3& R, const Vector3& t) const
+		Aabb3 GetAabb(const Math::Matrix3& R, Math::Vector3 t) const
 		{
-			Vector3 v = R * vertices[0] + t;
-			Vector3 v1 = v;
-			Vector3 v2 = v;
+			Math::Vector3 v = R * vertices[0] + t;
+			Math::Vector3 v1 = v;
+			Math::Vector3 v2 = v;
 			for (size_t i = 1; i < vertices.size(); i++)
 			{
 				v = R * vertices[i] + t;
@@ -202,7 +204,7 @@ namespace Geometry
 		size_t RemoveDuplicatedVertices();
 		size_t RemoveDuplicatedNormals();
 
-		void Transform(float scale, const Vector3& offset)
+		void Transform(float scale, Math::Vector3 offset)
 		{
 			// first scale, then translate
 			for (size_t i = 0; i < vertices.size(); i++)
@@ -222,11 +224,11 @@ namespace Geometry
 			int i1 = indices[tri * 3 + 0];
 			int i2 = indices[tri * 3 + 1];
 			int i3 = indices[tri * 3 + 2];
-			const Vector3& v1 = vertices[i1];
-			const Vector3& v2 = vertices[i2];
-			const Vector3& v3 = vertices[i3];
-			Vector3 minV = vmin(vmin(v1, v2), v3);
-			Vector3 maxV = vmax(vmax(v1, v2), v3);
+			const Math::Vector3& v1 = vertices[i1];
+			const Math::Vector3& v2 = vertices[i2];
+			const Math::Vector3& v3 = vertices[i3];
+			Math::Vector3 minV = vmin(vmin(v1, v2), v3);
+			Math::Vector3 maxV = vmax(vmax(v1, v2), v3);
 			return Aabb3(minV, maxV);
 		}
 

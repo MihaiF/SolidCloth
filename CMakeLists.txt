@@ -5,24 +5,27 @@ project(SolidCloth)
 #find_package(imgui CONFIG REQUIRED)
 #find_package(GLEW REQUIRED)
 
-set(SOURCES 
-	Demo/ClothDemo.cpp
-	Demo/DemoHost.cpp
+set(SOURCES_CLOTH 
 	Physics/ClothPatch.cpp
 	Physics/ClothModel.cpp
 	Physics/ClothCollisionHandler.cpp
 	Physics/ClothCollision.cpp
 	Physics/ClothPBD.cpp
+)
+
+set(SOURCES_GEOM
+	Geometry/Mesh.cpp
 	Geometry/Collision3D.cpp
 	Geometry/SDF.cpp
-	Geometry/Mesh.cpp
-	Geometry/Assets.cpp
 	Geometry/MarchingCubes.cpp
 	Geometry/AabbTree.cpp
 	Geometry/ClosestPointOnMesh.cpp
 	Geometry/ClosestPointsBetweenMeshes.cpp
 	Geometry/VoronoiRegions.cpp
 	Math/Quaternion.cpp
+)
+
+set(SOURCES
 	Graphics2D/TextureGL.cpp
 	Graphics2D/Graphics2DGLS.cpp
 	Graphics3D/Graphics3DGLS.cpp
@@ -31,15 +34,22 @@ set(SOURCES
 	Engine/Profiler.cpp
 )
 
-add_executable(ClothDemo WIN32 ${SOURCES})
+add_executable(ClothDemo WIN32 ${SOURCES} ${SOURCES_GEOM} ${SOURCES_CLOTH} Geometry/Assets.cpp Demo/ClothDemo.cpp Demo/DemoHost.cpp)
+add_executable(ClothDemoAPI WIN32 ${SOURCES} ${SOURCES_GEOM} Geometry/Assets.cpp Demo/ClothDemoAPI.cpp Demo/DemoHostAPI.cpp)
+add_library(ClothLib SHARED ${SOURCES_CLOTH} ${SOURCES_GEOM} Demo/ClothAPI.cpp)
 
 target_include_directories(ClothDemo PRIVATE .)
+target_include_directories(ClothDemoAPI PRIVATE .)
+target_include_directories(ClothLib PRIVATE .)
 
 add_compile_definitions(USE_IMGUI)
+target_compile_definitions(ClothLib PRIVATE DISABLE_PROFILER)
 
 find_package(OpenMP)
 if(OpenMP_CXX_FOUND)
     target_link_libraries(ClothDemo PUBLIC OpenMP::OpenMP_CXX)
 endif()
 
+add_dependencies(ClothDemoAPI ClothLib)
+target_link_libraries(ClothDemoAPI PRIVATE ClothLib)
 #target_link_libraries(ClothDemo PRIVATE freeimage::FreeImage freeimage::FreeImagePlus)

@@ -1,4 +1,5 @@
 #include <Engine/Base.h>
+#include <Engine/Engine.h>
 
 #include <Graphics3D/Graphics3D.h>
 #if (RENDERER3D == OPENGL) && !defined(FIXED_PIPELINE)
@@ -14,6 +15,8 @@
 
 #include <string>
 #include <vector>
+
+using namespace Math;
 
 bool Graphics3D::Init(HWND window)
 {

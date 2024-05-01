@@ -1,9 +1,10 @@
 #pragma once
 
-#include "ClothDemo.h"
+#include "ClothDemoAPI.h"
+
 #include "Engine/Engine.h"
 
-class DemoHost : public Engine
+class DemoHost : public Engine // TODO: rename to DemoHostAPI
 {
 public:
 	DemoHost();
@@ -20,12 +21,12 @@ private:
 	void Reset();
 
 private:
-	ClothDemo mClothDemo;
+	ClothDemoAPI mClothDemo;
 	bool pausePhysics = true;
 	bool stepByStep = false;
 	float timeStep = 0.016f;
 	bool mShowDebug = false;
 	int mDebugDrawFlags = 0;
-	int mDemoType = ClothDemo::CLOTH_DEMO_MESH;
+	int mDemoType = ClothDemoAPI::CLOTH_DEMO_DEFAULT;
 	bool mLightFollowsCamera = true;
 };

@@ -35,7 +35,7 @@ struct NormalProgram
 
 struct PosNormal // vertex format
 {
-	Vector3 v, n;
+	Math::Vector3 v, n;
 };
 
 class RenderMesh
@@ -47,12 +47,12 @@ public:
 	void Create();
 	void Destroy();
 
-	void SetVertexData(const std::vector<Vector3>& vertices);
-	void SetNormalData(const std::vector<Vector3>& normals);
-	void SetColorData(const std::vector<Vector3>& colors);
-	void SetUVData(const std::vector<Vector2>& uvs);
+	void SetVertexData(const std::vector<Math::Vector3>& vertices);
+	void SetNormalData(const std::vector<Math::Vector3>& normals);
+	void SetColorData(const std::vector<Math::Vector3>& colors);
+	void SetUVData(const std::vector<Math::Vector2>& uvs);
 	void SetIndexData(const std::vector<uint32>& indices);
-	void SetTransform(const Matrix4* mat) { mModel = mat; }
+	void SetTransform(const Math::Matrix4* mat) { mModel = mat; }
 	void SetTexture(const Texture* tex) { mTexture = tex; }
 
 	void PrepareVBOAttributes(bool hasColors, bool hasUVs) const;
@@ -64,7 +64,7 @@ public:
 private:
 	size_t mNumElements;
 
-	const Matrix4* mModel = nullptr;
+	const Math::Matrix4* mModel = nullptr;
 
 	GLuint mVertexVBO = 0;
 	GLuint mNormalVBO = 0;
@@ -84,24 +84,29 @@ class OpenGLSData
 public:
 	bool Init();
 	void Resize(int width, int height);
-	void PrepareForDraw(const Math::Vector3& lightPos, const Math::Vector3& lightDir, const Vector3& eye);
+	void PrepareForDraw(const Math::Vector3& lightPos, const Math::Vector3& lightDir, const Math::Vector3& eye);
 	void PrepareForShadow();
 
 	void DrawAxes();
-	void DrawPlane(const Vector3& pos, float scale, Texture* tex);
+	void DrawPlane(const Math::Vector3& pos, float scale, Texture* tex);
 	int DrawSphere(const Math::Vector3& pos, float radius);
-	void DrawSphereTex(const Math::Vector3& pos, float radius, const Matrix3& rot, Texture* tex);
-	void DrawTriangle(const Vector3& a, const Vector3& b, const Vector3& c, bool fill);
-	void DrawCube(const Vector3& pos, const Vector3& ext, const Matrix3& rot);
-	void DrawCapsule(const Vector3& pos, float radius, float height, const Matrix3& rot);
-	void DrawLine(const Vector3& a, const Vector3& b);
-	void DrawLines(std::vector<Vector3> points);
+	void DrawSphereTex(const Math::Vector3& pos, float radius, const Math::Matrix3& rot, Texture* tex);
+	void DrawTriangle(const Math::Vector3& a, const Math::Vector3& b, const Math::Vector3& c, bool fill);
+	void DrawCube(const Math::Vector3& pos, const Math::Vector3& ext, const Math::Matrix3& rot);
+	void DrawCapsule(const Math::Vector3& pos, float radius, float height, const Math::Matrix3& rot);
+	void DrawLine(const Math::Vector3& a, const Math::Vector3& b);
+	void DrawLines(std::vector<Math::Vector3> points);
 	int DrawMesh(const RenderMesh& mesh, bool useVAO = true, bool hasColors = false);
-	int DrawMesh(const std::vector<Vector3>& vertices, const std::vector<Vector3>& normals, const std::vector<uint32>& indices, const Matrix4* model);
-	int DrawMesh(const std::vector<Vector3>& vertices, const std::vector<Vector3>& normals, const std::vector<Vector3>& colors, const std::vector<uint32>& indices, const Matrix4* model);
-	int DrawMesh(const std::vector<Vector3>& vertices, const std::vector<Vector3>& normals, const std::vector<uint32>& indices, const std::vector<Vector2>& uvs, Texture* tex, const Matrix4* model);
-	void DrawTetrahedron(const Vector3& v0, const Vector3& v1, const Vector3& v2, const Vector3& v3);
-	void DrawTetrahedronEdgeAsBBCurve(const Vector3& c1, const Vector3& c2, const size_t nodesperedge, const Vector3* edge);
+	int DrawMesh(const std::vector<Math::Vector3>& vertices, const std::vector<Math::Vector3>& normals, 
+		const std::vector<uint32>& indices, const Math::Matrix4* model);
+	int DrawMesh(const std::vector<Math::Vector3>& vertices, const std::vector<Math::Vector3>& normals, 
+		const std::vector<Math::Vector3>& colors, const std::vector<uint32>& indices, const Math::Matrix4* model);
+	int DrawMesh(const std::vector<Math::Vector3>& vertices, const std::vector<Math::Vector3>& normals, 
+		const std::vector<uint32>& indices, const std::vector<Math::Vector2>& uvs, Texture* tex, 
+		const Math::Matrix4* model);
+	void DrawTetrahedron(const Math::Vector3& v0, const Math::Vector3& v1, const Math::Vector3& v2, const Math::Vector3& v3);
+	void DrawTetrahedronEdgeAsBBCurve(const Math::Vector3& c1, const Math::Vector3& c2, 
+		const size_t nodesperedge, const Math::Vector3* edge);
 
 	void CreateSphere(int divsTheta = 10, int divsPhi = 10);
 	void CreatePlane(int divsX = 10, int divsY = 10);
@@ -116,14 +121,14 @@ public:
 	void ResetFlags();
 	int GetFlags() const { return flags; }
 
-	const Matrix4& GetProjection() const { return Projection; }
-	void SetProjection(const Matrix4& mat) { Projection = mat; }
+	const Math::Matrix4& GetProjection() const { return Projection; }
+	void SetProjection(const Math::Matrix4& mat) { Projection = mat; }
 
-	const Matrix4& GetView() const { return View; }
-	void SetView(const Matrix4& mat) { View = mat; }
+	const Math::Matrix4& GetView() const { return View; }
+	void SetView(const Math::Matrix4& mat) { View = mat; }
 
-	const Matrix4& GetViewShadow() const { return viewShadow; }
-	void SetViewShadow(const Matrix4& mat) { viewShadow = mat; }
+	const Math::Matrix4& GetViewShadow() const { return viewShadow; }
+	void SetViewShadow(const Math::Matrix4& mat) { viewShadow = mat; }
 
 	Texture& GetShadowMap() { return shadowMap; }
 	bool IsShadowPass() const { return isShadowPass; }
@@ -155,7 +160,7 @@ private:
 
 private:
 	int mWidth, mHeight;
-	Matrix4 Projection, View;
+	Math::Matrix4 Projection, View;
 
 	RenderMesh mMesh;
 	GLuint vertexbuffer; // TODO: remove
@@ -181,8 +186,8 @@ private:
 	GLuint shadowModelID;
 	bool isShadowPass = false;
 	Texture shadowMap;
-	Matrix4 viewShadow;
-	Matrix4 projShadow;
+	Math::Matrix4 viewShadow;
+	Math::Matrix4 projShadow;
 	bool shadowsActive = false;
 
 	Texture mScreenMap;

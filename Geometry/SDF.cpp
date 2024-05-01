@@ -5,6 +5,7 @@
 #include <Geometry/AabbTree.h>
 
 using namespace Geometry;
+using namespace Math;
 
 void SDF::Create(int nx, int ny, int nz, const Aabb3& box)
 {
@@ -38,7 +39,7 @@ void SDF::CacheData()
 	mSteps.Scale(invRes);
 }
 
-void SDF::CreateFromImplicit(std::function<float(const Vector3& pos)> eval)
+void SDF::CreateFromImplicit(std::function<float(Vector3 pos)> eval)
 {
 	for (int x = 0; x <= numCellsPerSide[0]; x++)
 	{
@@ -314,7 +315,7 @@ void SDF::Combine(const SDF& other, CombineOp op)
 	}
 }
 
-void SDF::Combine(std::function<float(const Vector3& pos)> eval, CombineOp op)
+void SDF::Combine(std::function<float(Vector3 pos)> eval, CombineOp op)
 {
 	PROFILE_SCOPE("Combine SDF");
 

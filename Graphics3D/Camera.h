@@ -8,7 +8,7 @@ class PolarCamera
 {
 private:
 	float r, ux, uy;
-	Vector3 offset;
+	Math::Vector3 offset;
 
 public:
 	PolarCamera()
@@ -19,9 +19,10 @@ public:
 		offset.Y() = 40.f;
 	}
 
-	Matrix4 View()
+	Math::Matrix4 View()
 	{
-		return Matrix4::Translation(0, 0, -r) * Matrix4::RotationX(RADIAN(ux)) * Matrix4::RotationY(RADIAN(uy)) * Matrix4::Translation(-offset.X(), -offset.Y(), -offset.Z());
+		return Math::Matrix4::Translation(0, 0, -r) * Math::Matrix4::RotationX(RADIAN(ux)) * 
+			Math::Matrix4::RotationY(RADIAN(uy)) * Math::Matrix4::Translation(-offset.X(), -offset.Y(), -offset.Z());
 	}
 
 	void Rotate(int dx, int dy)
@@ -41,7 +42,8 @@ class EulerCamera
 public:
 	EulerCamera() : yaw(0), pitch(0), roll(0), eye(0, 0, 600) { }
 
-	Matrix4 View() const { return Matrix4::Euler(yaw, pitch, roll) * Matrix4::Translation(-eye.X(), -eye.Y(), -eye.Z()); }
+	Math::Matrix4 View() const { return Math::Matrix4::Euler(yaw, pitch, roll) * 
+		Math::Matrix4::Translation(-eye.X(), -eye.Y(), -eye.Z()); }
 
 	void Rotate(int dx, int dy)
 	{
@@ -51,20 +53,20 @@ public:
 
 	void Translate(float deltaZ, float deltaX)
 	{
-		Matrix4 mat = View();
-		Vector3 viewDir(mat.col[0][2], mat.col[1][2], mat.col[2][2]);
-		Vector3 slideDir(mat.col[0][0], mat.col[1][0], mat.col[2][0]); // the first column of the transposed rotation matrix
+		Math::Matrix4 mat = View();
+		Math::Vector3 viewDir(mat.col[0][2], mat.col[1][2], mat.col[2][2]);
+		Math::Vector3 slideDir(mat.col[0][0], mat.col[1][0], mat.col[2][0]); // the first column of the transposed rotation matrix
 		const float speed = 5.f; // FIXME
 		eye += speed * (-deltaZ * viewDir + deltaX * slideDir);
 	}
 
-	Vector3 GetPosition() const { return eye; }
-	void SetPosition(const Vector3& pos) { eye = pos; }
+	Math::Vector3 GetPosition() const { return eye; }
+	void SetPosition(Math::Vector3 pos) { eye = pos; }
 
-	Vector3 GetViewDir() const
+	Math::Vector3 GetViewDir() const
 	{
-		Matrix4 mat = View();
-		return Vector3(mat.col[0][2], mat.col[1][2], mat.col[2][2]);
+		Math::Matrix4 mat = View();
+		return Math::Vector3(mat.col[0][2], mat.col[1][2], mat.col[2][2]);
 	}
 
 	float GetYaw() const { return yaw; }
@@ -73,8 +75,7 @@ public:
 
 private:
 	float yaw, pitch, roll;
-	Vector3 eye;
-
+	Math::Vector3 eye;
 };
 
 typedef EulerCamera Camera;

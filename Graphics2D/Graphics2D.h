@@ -66,7 +66,7 @@ class Graphics2D
 		int w, h;
 		float color[4];
 
-		Matrix4 View;
+		Math::Matrix4 View;
 		
 		float lineWidth;
 
@@ -85,7 +85,7 @@ class Graphics2D
 			bgColor[2] = 0.4f;
 		}
 #	if !defined(FIXED_PIPELINE)
-		Matrix4 Projection;
+		Math::Matrix4 Projection;
 		GLuint programID, programRectID, currProgram;
 		GLuint MatrixID, ColorID;
 		GLuint widthID, heightID;
@@ -95,7 +95,7 @@ class Graphics2D
 		// for image processing
 		GLuint frameBufferObj;
 		GLuint shaderFb, shaderFbRect, mvpFb, sizeFb, kernelFb, widthFb, heightFb;
-		Matrix4 oldProj;
+		Math::Matrix4 oldProj;
 		int texFlag;
 #	endif
 
@@ -190,16 +190,16 @@ class Graphics2D
 		void DrawPolyLine(float v[], int n, bool fill = false);
 
 		void DrawCircle(float x, float y, float radius, float arcLen = 7.f);
-		void DrawCircle(const Vector2& c, float radius, float arcLen = 7.f) { DrawCircle(c.GetX(), c.GetY(), radius, arcLen); }
+		void DrawCircle(const Math::Vector2& c, float radius, float arcLen = 7.f) { DrawCircle(c.GetX(), c.GetY(), radius, arcLen); }
 		void DrawEllipse(float x, float y, float rx, float ry, float arcLen = 7.f);
-		void DrawEllipse(const Vector2& c, float rx, float ry, float arcLen = 7.f) { DrawEllipse(c.GetX(), c.GetY(), rx, ry, arcLen); }
+		void DrawEllipse(const Math::Vector2& c, float rx, float ry, float arcLen = 7.f) { DrawEllipse(c.GetX(), c.GetY(), rx, ry, arcLen); }
 		
 		void FillCircle(float x, float y, float radius, float arcLen = 7.f);
 		void FillEllipse(float x, float y, float rx, float ry, float arcLen = 7.f);
 
 		// aliases
-		void DrawLine(const Vector2& a, const Vector2& b) {	DrawLine(a.GetX(), a.GetY(), b.GetX(), b.GetY()); }
-		void DrawRect(const Vector2& a, const Vector2& b) {	DrawRect(a.GetX(), a.GetY(), b.GetX(), b.GetY()); }
+		void DrawLine(const Math::Vector2& a, const Math::Vector2& b) {	DrawLine(a.GetX(), a.GetY(), b.GetX(), b.GetY()); }
+		void DrawRect(const Math::Vector2& a, const Math::Vector2& b) {	DrawRect(a.GetX(), a.GetY(), b.GetX(), b.GetY()); }
 
 		void DrawString(float x, float y, const char* text);
 
@@ -233,8 +233,8 @@ class Graphics2D
 		int GetHeight() const { return h; }
 
 		void ResetTransform();
-		Matrix4 GetTransform() const;
-		void SetTransform(const Matrix4& m);
+		Math::Matrix4 GetTransform() const;
+		void SetTransform(const Math::Matrix4& m);
 
 		void DrawLineMesh(const LineMesh& mesh);
 

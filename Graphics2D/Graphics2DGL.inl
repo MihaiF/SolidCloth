@@ -7,7 +7,7 @@ inline void Graphics2D::Translate(float x, float y)
 #if defined(FIXED_PIPELINE)
 	glTranslatef(x, y, 0); 
 #endif
-	View = View * Matrix4::Translation(x, y, 0);
+	View = View * Math::Matrix4::Translation(x, y, 0);
 }
 
 inline void Graphics2D::Rotate(float angle) 
@@ -15,7 +15,7 @@ inline void Graphics2D::Rotate(float angle)
 #ifdef FIXED_PIPELINE
 	glRotatef(angle, 0, 0, 1);
 #endif
-	View = View * Matrix4::RotationZ(RADIAN(angle));
+	View = View * Math::Matrix4::RotationZ(RADIAN(angle));
 }
 
 inline void Graphics2D::Scale(float s, float t) 
@@ -23,7 +23,7 @@ inline void Graphics2D::Scale(float s, float t)
 #if defined(FIXED_PIPELINE)
 	glScalef(s, t, 0); // TODO: disable for CPU zooming
 #endif
-	View = View * Matrix4::Scale(s, t, 1);
+	View = View * Math::Matrix4::Scale(s, t, 1);
 }
 
 inline void Graphics2D::PushMatrix() 
@@ -47,10 +47,10 @@ inline void Graphics2D::ResetTransform()
 	glTranslatef(0.f, (float)h, 0.f);
 	glScalef(1, -1, 1);
 #endif
-	View = Matrix4::Identity();
+	View = Math::Matrix4::Identity();
 }
 
-inline Matrix4 Graphics2D::GetTransform() const
+inline Math::Matrix4 Graphics2D::GetTransform() const
 {
 #ifdef FIXED_PIPELINE
 	glPushMatrix();
@@ -59,7 +59,7 @@ inline Matrix4 Graphics2D::GetTransform() const
 	return View;
 }
 
-inline void Graphics2D::SetTransform(const Matrix4& m)
+inline void Graphics2D::SetTransform(const Math::Matrix4& m)
 {
 #if defined(FIXED_PIPELINE)
 	glPopMatrix();

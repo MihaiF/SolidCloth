@@ -15,6 +15,8 @@
 #include <fstream>
 #include <map>
 
+using namespace Math;
+
 uint32 crc32(uint32 crc, const void* buf, uint32 size);
 
 namespace Geometry

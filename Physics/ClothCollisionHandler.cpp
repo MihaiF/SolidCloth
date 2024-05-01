@@ -2,6 +2,8 @@
 #include "Engine/Profiler.h"
 #include "ClothModel.h"
 
+using namespace Math;
+
 #define UPDATE_CLOSEST_POINT
 
 namespace Physics

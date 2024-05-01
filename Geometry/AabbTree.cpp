@@ -2,6 +2,8 @@
 #include "Geometry/Mesh.h"
 #include <Engine/Profiler.h>
 
+using namespace Math;
+
 namespace Geometry
 {
 	void SplitNode(AabbTree* root, const Geometry::Mesh& mesh, int level, int maxLevel, int flags, float tol)

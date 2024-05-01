@@ -7,6 +7,8 @@
 
 #define SHADOWS_PCF
 
+using namespace Math;
+
 bool LoadShader(const char* path, GLenum type, GLuint& ShaderID)
 {
 	ShaderID = glCreateShader(type);

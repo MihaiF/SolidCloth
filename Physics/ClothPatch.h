@@ -8,7 +8,7 @@
 
 namespace Geometry
 {
-	struct Mesh;
+	class Mesh;
 }
 
 namespace Physics
@@ -28,7 +28,7 @@ namespace Physics
 		ClothPatch& operator =(const ClothPatch& other);
 		~ClothPatch();
 		// init quad sim-mesh based on input args
-		void Init(int divisionsX, int divisionsY, float inc, const Math::Vector3& offset, bool horizontal, bool attached);
+		void Init(int divisionsX, int divisionsY, float inc, Math::Vector3 offset, bool horizontal, bool attached);
 		// init tri-sim-mesh
 		void Init(const Geometry::Mesh& mesh, const Math::Vector3& offset, bool attached);
 		bool Step(float dt);
@@ -37,9 +37,11 @@ namespace Physics
 
 		const Geometry::Mesh& GetMesh() const { return *mMesh; }
 		Geometry::Mesh& GetMesh() { return *mMesh; }
+		Geometry::Mesh* GetMeshPtr() { return mMesh.get(); }
 		Geometry::Mesh& GetPrevMesh() { return *mPrevMesh; }
 		const ClothModel& GetModel() const { return *mModel; }
 		ClothModel& GetModel() { return *mModel; }
+		ClothModel* GetModelPtr() { return mModel; }
 		float GetMaxMass() const { return mMaxMass; }
 		void SetPosition(const Math::Vector3& v) { mPosition = v; }
 		void SetMethod(MethodType val);
@@ -50,6 +52,8 @@ namespace Physics
 		ClothCollisionHandler& GetCollisionHandler() { return mCollisionHandler; }
 
 		const CollisionWorld& GetCollWorld() const { return  mCollWorld; }
+
+		void ComputeStrainMap(std::vector<Math::Vector3>& colors);
 
 	private:
 		bool mIsQuadMesh;

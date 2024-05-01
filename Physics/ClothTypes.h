@@ -7,7 +7,7 @@
 
 namespace Geometry
 {
-	struct Mesh;
+	class Mesh;
 }
 
 namespace Physics
@@ -29,9 +29,14 @@ namespace Physics
 		}
 	};
 
+	struct Quad
+	{
+		uint32 i1, i2, i3, i4;
+	};
+
 	struct Triangle
 	{
-		// TODO: cleanup
+		// TODO: cleanup!
 		uint32 i1, i2, i3;
 
 		// needed by solver

@@ -14,21 +14,21 @@
 struct Cell
 {
 	float val[8]; // value at each cube's corner
-	Vector3 pos[8]; // cube positions
+	Math::Vector3 pos[8]; // cube positions
 	int x[8];
 	int y[8];
 	int z[8];
 };
 
 void CreateIsoSurface(Geometry::Mesh& mcMesh, std::function<float(int, int, int)> eval,
-	std::function<Vector3(const Vector3&)> grad, const Geometry::Aabb3& box, int numCellsPerSide[], float isoLevel = 0.f, float narrowBand = FLT_MAX);
+	std::function<Math::Vector3(Math::Vector3)> grad, const Geometry::Aabb3& box, int numCellsPerSide[], float isoLevel = 0.f, float narrowBand = FLT_MAX);
 
-int polygonise(Cell& grid, float iso_lvl, Vector3* triangles);
+int polygonise(Cell& grid, float iso_lvl, Math::Vector3* triangles);
 
 struct TriangleBucket
 {
-	std::array<Vector3, 16> arr;
-	std::array<Vector3, 16> normals;
+	std::array<Math::Vector3, 16> arr;
+	std::array<Math::Vector3, 16> normals;
 	int n;
 	int off;
 };

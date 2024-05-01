@@ -18,6 +18,8 @@
 
 #ifndef FIXED_PIPELINE
 
+using namespace Math;
+
 FT_Face face;
 unsigned int fontShader;
 

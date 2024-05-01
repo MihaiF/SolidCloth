@@ -3,6 +3,7 @@
 #include <Engine/Engine.h>
 
 using namespace Geometry;
+using namespace Math;
 
 namespace Physics
 {
@@ -131,7 +132,7 @@ namespace Physics
 		mModel->Init();
 	}
 
-	void ClothPatch::Init(int divX, int divY, float inc, const Vector3& offset, bool horizontal, bool attached)
+	void ClothPatch::Init(int divX, int divY, float inc, Vector3 offset, bool horizontal, bool attached)
 	{
 		mMesh->Clear();
 
@@ -202,6 +203,7 @@ namespace Physics
 					if (idx > divY)
 					{
 						mModel->AddLink(idx - divY - 1, idx, shear);
+						mModel->AddQuad(idx - divY - 1, idx - divY, idx, idx - 1);
 						if ((i & 1) == (j & 1))
 						{
 							mModel->AddTriangle(idx - divY - 1, idx, idx - divY);
@@ -327,5 +329,51 @@ namespace Physics
 		}
 
 		return false;
+	}
+
+	void ClothPatch::ComputeStrainMap(std::vector<Vector3>& colors)
+	{
+		for (size_t i = 0; i < GetModel().GetNumParticles(); i++)
+			colors[i].SetZero();
+		float maxStrain = 0;
+		float minStrain = 20; // FIXME
+		for (size_t i = 0; i < GetModel().GetNumTris(); i++)
+		{
+			Physics::Triangle tri = GetModel().GetTriangle(i);
+			const Physics::Particle& p1 = GetModel().GetParticle(tri.i1);
+			const Physics::Particle& p2 = GetModel().GetParticle(tri.i2);
+			const Physics::Particle& p3 = GetModel().GetParticle(tri.i3);
+			Vector3 dx1 = (p2.pos - p1.pos);
+			Vector3 dx2 = (p3.pos - p1.pos);
+
+			Vector3 wu = tri.invDet * (tri.dv2 * dx1 - tri.dv1 * dx2);
+			Vector3 wv = tri.invDet * (-tri.du2 * dx1 + tri.du1 * dx2);
+
+			tri.euu = 0.5f * ((wu * wu) - 1);
+			tri.evv = 0.5f * ((wv * wv) - 1);
+			tri.euv = wu * wv;
+
+			float strain = sqrtf(tri.euu * tri.euu + tri.evv * tri.evv + tri.euv * tri.euv);
+			maxStrain = max(strain, maxStrain);
+			minStrain = min(strain, minStrain);
+
+			float s = strain;
+
+			Vector3 e1 = dx1;
+			Vector3 e2 = p3.pos - p2.pos;
+			Vector3 e3 = -dx2;
+			e1.Normalize();
+			e2.Normalize();
+			e3.Normalize();
+			float t1 = acos(-(e1 * e3));
+			float t2 = acos(-(e1 * e2));
+			float t3 = acos(-(e2 * e3));
+
+			s *= 10.f;
+			Vector3 col(s, 0, s);
+			colors[tri.i1] += (t1 / PI) * col;
+			colors[tri.i2] += (t2 / PI) * col;
+			colors[tri.i3] += (t3 / PI) * col;
+		}
 	}
 }

@@ -3,6 +3,7 @@
 #include <Engine/Engine.h>
 
 using namespace Geometry;
+using namespace Math;
 
 namespace Physics
 {
@@ -153,8 +154,8 @@ namespace Physics
 		Printf("%f\n", ang.Length());
 
 		mFrames++;
-		if (mFrames > 2000)
-			Engine::getInstance()->Quit();
+		//if (mFrames > 2000)
+		//	Engine::getInstance()->Quit();
 	}
 
 	void ClothModel::HandleMouseSpring(float h)

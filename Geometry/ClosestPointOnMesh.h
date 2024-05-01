@@ -35,7 +35,7 @@ namespace Geometry
 
 	void ClosestPointsOnMeshToPoint(Math::Vector3 p, const Mesh& mesh, std::vector<ClosestTriangleToPoint>& results, float maxDist = FLT_MAX);
 
-	ClosestTriangleToPoint ClosestPointOnMeshToPoint(Vector3 p, const Mesh& mesh, const std::vector<int>& triangles);
+	ClosestTriangleToPoint ClosestPointOnMeshToPoint(Math::Vector3 p, const Mesh& mesh, const std::vector<int>& triangles);
 	
 	ClosestTriangleToPoint ClosestPointOnMeshToPointAcc(Math::Vector3 p, const Mesh& mesh, const struct AabbTree* tree, 
 		int seed = -1, bool useDeltaNormal = true);
@@ -76,7 +76,7 @@ namespace Geometry
 	// The closest point is always located on a vertex
 	float ClosestPointOnMeshToTriangle(Math::Vector3 a, Math::Vector3 b, Math::Vector3 c, const Mesh& mesh, ClosestVertexToTriangle& result);
 
-	float ClosestPointOnMeshToTriangle(Vector3 a, Vector3 b, Vector3 c, const Mesh& mesh, const std::vector<int>& vertexSet, ClosestVertexToTriangle& result);
+	float ClosestPointOnMeshToTriangle(Math::Vector3 a, Math::Vector3 b, Math::Vector3 c, const Mesh& mesh, const std::vector<int>& vertexSet, ClosestVertexToTriangle& result);
 
 	ClosestVertexToTriangle ClosestPointOnMeshToTriangleAcc(Math::Vector3 a, Math::Vector3 b, Math::Vector3 c, const Mesh& mesh, const AabbTree* node, int seed = -1);
 }

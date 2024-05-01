@@ -37,15 +37,19 @@ namespace Physics
 		
 		void SetNumParticles(size_t val) { mParticles.resize(val); }
 		size_t GetNumParticles() const { return mParticles.size(); }
-		void AddParticle(const Vector3& pos, float invMass, const Vector2& uv);
+		void AddParticle(Math::Vector3 pos, float invMass, Math::Vector2 uv);
 		const Particle& GetParticle(size_t i) const { return mParticles[i]; }
 		Particle& GetParticle(size_t i) { return mParticles[i]; }
 		void Clear();
 
 		size_t GetNumTris() const { return mTriangles.size(); }
 		const Triangle& GetTriangle(size_t i) const { return mTriangles[i]; }
-		void AddTriangle(size_t i1, size_t i2, size_t i3, Vector2 uv1, Vector2 uv2, Vector2 uv3);
+		void AddTriangle(size_t i1, size_t i2, size_t i3, Math::Vector2 uv1, Math::Vector2 uv2, Math::Vector2 uv3);
 		void AddTriangle(size_t i1, size_t i2, size_t i3);
+		
+		uint32 GetNumQuads() const { return mQuads.size(); }
+		void AddQuad(uint32 i1, uint32 i2, uint32 i3, uint32 i4) { mQuads.push_back({ i1, i2, i3, i4 }); }
+		const Quad& GetQuad(uint32 i) const { return mQuads[i]; }
 
 		size_t GetNumLinks() const { return mLinks.size(); }
 		const Link& GetLink(size_t i) const { return mLinks[i]; }
@@ -54,17 +58,20 @@ namespace Physics
 		size_t GetNumContacts() const { return mContacts.size(); }
 		const Contact& GetContact(size_t i) const { return mContacts[i]; }
 		Contact& GetContact(size_t i) { return mContacts[i]; }
-		int AddContact(size_t idx, Vector3 p, Vector3 n, Vector3 vel, int tri = -1, const Geometry::Mesh* mesh = nullptr);
+		int AddContact(size_t idx, Math::Vector3 p, Math::Vector3 n, Math::Vector3 vel, int tri = -1, 
+			const Geometry::Mesh* mesh = nullptr);
 
 		size_t GetNumEdgeContacts() const { return mEdgeContacts.size(); }
 		const EdgeContact& GetEdgeContact(size_t i) const { return mEdgeContacts[i]; }
 		EdgeContact& GetEdgeContact(size_t i) { return mEdgeContacts[i]; }
-		int AddEdgeContact(int i1, int i2, Vector3 p, Vector3 n, Vector2 coords, Vector3 vel, int edge, const Geometry::Mesh* mesh);
+		int AddEdgeContact(int i1, int i2, Math::Vector3 p, Math::Vector3 n, Math::Vector2 coords, 
+			Math::Vector3 vel, int edge, const Geometry::Mesh* mesh);
 		
 		size_t GetNumTriContacts() const { return mTriContacts.size(); }
 		const TriContact& GetTriContact(size_t i) const { return mTriContacts[i]; }
 		TriContact& GetTriContact(size_t i) { return mTriContacts[i]; }
-		int AddTriContact(int i1, int i2, int i3, Vector3 p, Vector3 n, Vector3 bar, Vector3 vel, int vtx, const Geometry::Mesh* mesh);
+		int AddTriContact(int i1, int i2, int i3, Math::Vector3 p, Math::Vector3 n, Math::Vector3 bar, 
+			Math::Vector3 vel, int vtx, const Geometry::Mesh* mesh);
 
 		size_t GetNumSelfTris() const { return mSelfTris.size(); }
 		const SelfContact& GetSelfTriangle(size_t i) const { return mSelfTris[i]; }
@@ -78,7 +85,7 @@ namespace Physics
 		void AddSelfEdge(const SelfContact& selfEdge) { mSelfEdges.push_back(selfEdge); }
 		std::vector<SelfContact>& GetSelfEdges() { return mSelfEdges; }
 
-		void SetPositions(const Vector3* positions);
+		void SetPositions(const Math::Vector3* positions);
 		void SetMasses(const float* masses);
 
 		const std::vector<Geometry::Mesh::Edge>& GetEdges() const { return mEdges; }
@@ -123,9 +130,9 @@ namespace Physics
 
 		Geometry::AabbTree*& GetTree() { return mTree; }
 
-		void AddMouseSpring(int i1, int i2, int i3, const Math::BarycentricCoords& coords, const Vector3& p);
+		void AddMouseSpring(int i1, int i2, int i3, Math::BarycentricCoords coords, Math::Vector3 p);
 		void RemoveMouseSpring() { mMouseSpring.active = false; }
-		void UpdateMouseSpring(const Vector3& p) { if (mMouseSpring.active) mMouseSpring.point = p; }
+		void UpdateMouseSpring(Math::Vector3 p) { if (mMouseSpring.active) mMouseSpring.point = p; }
 
 		void SetUseCL(bool val) { mUseCL = val; }
 		void PrintInfo();
@@ -137,7 +144,7 @@ namespace Physics
 		int GetCacheTV(int i) const { return mCacheTV[i]; }
 		int GetCacheEE(int i) const { return mCacheEE[i]; }
 
-		void UpdateMesh(Geometry::Mesh& mesh, bool isQuadMesh, Vector3 position, bool usePrev = false);
+		void UpdateMesh(Geometry::Mesh& mesh, bool isQuadMesh, Math::Vector3 position, bool usePrev = false);
 
 		void SignalStop() { mSignal = true; }
 		bool CheckSignal();
@@ -145,7 +152,7 @@ namespace Physics
 	protected:
 		void ExternalCollisions();
 		void WallCollisions(const Geometry::Aabb3& walls);
-		void SphereCollisions(const Vector3& sphPos, float sphRad);
+		void SphereCollisions(Math::Vector3 sphPos, float sphRad);
 		void MeshCollisions(const Geometry::Mesh& mesh, Geometry::AabbTree* triangleTree, int collFlags);
 
 		template<typename SDFType>
@@ -179,6 +186,7 @@ namespace Physics
 		float mAlpha;
 		// topology
 		std::vector<Triangle> mTriangles;
+		std::vector<Quad> mQuads;
 		std::vector<Geometry::Mesh::Edge> mEdges;
 		// model
 		std::vector<Particle> mParticles;

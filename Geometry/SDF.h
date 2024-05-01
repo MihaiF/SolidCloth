@@ -30,7 +30,7 @@ public:
 
 	void Create(int res[], const Geometry::Aabb3& box);
 
-	void CreateFromImplicit(std::function<float(const Vector3& pos)> eval);
+	void CreateFromImplicit(std::function<float(Math::Vector3 pos)> eval);
 
 	void CreateFromMesh(const Geometry::Mesh& mesh, const struct AabbTree* tree = nullptr);
 
@@ -44,7 +44,7 @@ public:
 
 	void ComputeGradientParallel(float narrowBand = FLT_MAX);
 
-	const Vector3& GetSteps() const { return mSteps; }
+	Math::Vector3 GetSteps() const { return mSteps; }
 
 	int Index(int x, int y, int z) const
 	{
@@ -61,9 +61,9 @@ public:
 		z = w / numValsPerSide[1];
 	}
 
-	Vector3 GetPosAt(int x, int y, int z)
+	Math::Vector3 GetPosAt(int x, int y, int z)
 	{
-		Vector3 org((float)x, (float)y, (float)z);
+		Math::Vector3 org((float)x, (float)y, (float)z);
 		org.Scale(mSteps);
 		org += mBox.min;
 		return org;
@@ -88,21 +88,21 @@ public:
 		return mSDF[idx];
 	}
 
-	const Vector3 GetGrad(int x, int y, int z) const
+	Math::Vector3 GetGrad(int x, int y, int z) const
 	{
 		if (x > numCellsPerSide[0] || y > numCellsPerSide[1] || z > numCellsPerSide[2] || x < 0 || y < 0 || z < 0)
-			return Vector3::Zero();
+			return Math::Vector3::Zero();
 		return mGrad[Index(x, y, z)];
 	}
 
-	void SetGrad(int x, int y, int z, Vector3 grad)
+	void SetGrad(int x, int y, int z, Math::Vector3 grad)
 	{
 		if (x > numCellsPerSide[0] || y > numCellsPerSide[1] || z > numCellsPerSide[2] || x < 0 || y < 0 || z < 0)
 			return;
 		mGrad[Index(x, y, z)] = grad;
 	}
 
-	void GetGridCoords(const Vector3& pos, int& x, int& y, int& z,
+	void GetGridCoords(Math::Vector3 pos, int& x, int& y, int& z,
 		float& fx, float& fy, float& fz) const
 	{
 		float rx = (pos.x - mBox.min.x) / mSteps.x;
@@ -116,14 +116,14 @@ public:
 		fz = fabs(rz - z);
 	}
 
-	Vector3 GetGrad(const Vector3& pos) const
+	Math::Vector3 GetGrad(Math::Vector3 pos) const
 	{
 		int x, y, z;
 		float fx, fy, fz;
 		GetGridCoords(pos, x, y, z, fx, fy, fz);
 
 		if (x > numCellsPerSide[0] || y > numCellsPerSide[1] || z > numCellsPerSide[2] || x < 0 || y < 0 || z < 0)
-			return Vector3::Zero();
+			return Math::Vector3::Zero();
 
 		return (1.f - fx) * (1.f - fy) * (1.f - fz) * GetGrad(x, y, z) +
 			(1.f - fx) * (1.f - fy) * fz * GetGrad(x, y, z + 1) +
@@ -135,7 +135,7 @@ public:
 			fx * fy * fz * GetGrad(x + 1, y + 1, z + 1);
 	}
 
-	float GetValue(const Vector3& pos) const
+	float GetValue(Math::Vector3 pos) const
 	{
 		int x, y, z;
 		float fx, fy, fz;
@@ -168,7 +168,7 @@ public:
 
 	void Combine(const SDF& other, CombineOp op);
 
-	void Combine(std::function<float(const Vector3& pos)> eval, CombineOp op);
+	void Combine(std::function<float(Math::Vector3 pos)> eval, CombineOp op);
 
 	template<int op, typename FUNC>
 	void CombineParallel(FUNC&& eval, float param = 4.25f, float narrowBand = FLT_MAX)
@@ -245,9 +245,9 @@ private:
 	int numCellsPerSide[3];
 	int numValsPerSide[3];
 	std::vector<float> mSDF;
-	std::vector<Vector3> mGrad;
+	std::vector<Math::Vector3> mGrad;
 	Geometry::Aabb3 mBox;
-	Vector3 mSteps;
+	Math::Vector3 mSteps;
 };
 
 } // namespace Geometry

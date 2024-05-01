@@ -2,6 +2,8 @@
 #include "AabbTree.h"
 #include "Engine/Profiler.h"
 
+using namespace Math;
+
 //#define CONCAVE_CLOSEST_PTS
 
 namespace Geometry

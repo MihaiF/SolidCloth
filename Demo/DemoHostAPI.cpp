@@ -1,4 +1,4 @@
-#include "DemoHost.h"
+#include "DemoHostAPI.h"
 #include "Graphics2D/Graphics2D.h"
 #include "Graphics3D/Graphics3D.h"
 
@@ -77,34 +77,28 @@ void DemoHost::OnDrawUI()
 	ImGui::Checkbox("Step by step", &stepByStep);
 	ImGui::SliderFloat("Time step", &timeStep, 0.001f, 0.05f);
 	ImGui::Checkbox("Show debug", &mShowDebug);
+
+	auto show = [&](int flag, const char* name) {
+		bool showVar = (mDebugDrawFlags & flag) != 0;
+		if (ImGui::Checkbox(name, &showVar))
+		{
+			if (showVar)
+				mDebugDrawFlags |= flag;
+			else
+				mDebugDrawFlags &= ~flag;
+		}
+	};
+
 	if (mShowDebug)
 	{
-		bool showParticles = (mDebugDrawFlags & DDF_PARTICLES) != 0;
-		if (ImGui::Checkbox("Show particles", &showParticles))
-		{
-			if (showParticles)
-				mDebugDrawFlags |= DDF_PARTICLES;
-			else
-				mDebugDrawFlags &= ~DDF_PARTICLES;
-		}
-
-		bool showContacts = (mDebugDrawFlags & DDF_CONTACTS) != 0;
-		if (ImGui::Checkbox("Show contacts", &showContacts))
-		{
-			if (showContacts)
-				mDebugDrawFlags |= DDF_CONTACTS;
-			else
-				mDebugDrawFlags &= ~DDF_CONTACTS;
-		}
-
-		bool showTriContacts = (mDebugDrawFlags & DDF_TRI_CONTACTS) != 0;
-		if (ImGui::Checkbox("Show triangle contacts", &showTriContacts))
-		{
-			if (showTriContacts)
-				mDebugDrawFlags |= DDF_TRI_CONTACTS;
-			else
-				mDebugDrawFlags &= ~DDF_TRI_CONTACTS;
-		}
+		show(DDF_PARTICLES, "Show particles");
+		show(DDF_LINKS, "Show links");
+		show(DDF_CONTACTS, "Show contacts");
+		show(DDF_TRI_CONTACTS, "Show triangle contacts");
+		show(DDF_TREE, "Show mesh tree");
+		show(DDF_TREE_SELF, "Show cloth tree");
+		show(DDF_WARP_WEFT, "Show warp-weft");
+		show(DDF_STRAIN, "Show strain map");
 	}
 
 	if (ImGui::CollapsingHeader("Rendering"))

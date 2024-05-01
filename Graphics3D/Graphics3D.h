@@ -56,9 +56,9 @@ public: // TODO: private
 #if !defined(FIXED_PIPELINE) && (RENDERER3D == OPENGL)
 	OpenGLSData mGLS; // TOD: make PIMPL and private
 #endif
-	Vector3 color;
-	Vector3 lightPos;
-	Vector3 lightDir;
+	Math::Vector3 color;
+	Math::Vector3 lightPos;
+	Math::Vector3 lightDir;
 
 	int mRenderMode;
 
@@ -78,24 +78,26 @@ public:
 	void MouseUp(int x, int y);
 	void MouseWheel(float delta);
 
-	void DrawPlane(const Vector3& plane, float scale, Texture* tex = nullptr);
-	int DrawSphere(const Vector3& pos, float radius);
-	void DrawSphereTex(const Vector3& pos, float radius, const Matrix3& rot, Texture* tex);
-	void DrawTriangle(const Vector3& a, const Vector3& b, const Vector3& c, bool fill);
-	void DrawCube(const Vector3& pos, const Vector3& extent, const Matrix3& rot);
-	void DrawWireCube(const Vector3& pos, const Vector3& extent, const Matrix3& rot);
-	void DrawLine(const Vector3& a, const Vector3& b);
-	void DrawLines(const std::vector<Vector3>& points);
-	void DrawTetrahedronEdgeAsBBCurve(const Vector3& c1, const Vector3& c2, const size_t nodesperedge, const Vector3* edge);
-	void DrawTetrahedron(const Vector3& v0, const Vector3& v1, const Vector3& v2, const Vector3& v3);
-	void DrawCapsule(const Vector3& pos, float radius, float height, const Matrix3& rot);
+	void DrawPlane(const Math::Vector3& plane, float scale, Texture* tex = nullptr);
+	int DrawSphere(const Math::Vector3& pos, float radius);
+	void DrawSphereTex(const Math::Vector3& pos, float radius, const Math::Matrix3& rot, Texture* tex);
+	void DrawTriangle(const Math::Vector3& a, const Math::Vector3& b, const Math::Vector3& c, bool fill);
+	void DrawCube(const Math::Vector3& pos, const Math::Vector3& extent, const Math::Matrix3& rot);
+	void DrawWireCube(const Math::Vector3& pos, const Math::Vector3& extent, const Math::Matrix3& rot);
+	void DrawLine(const Math::Vector3& a, const Math::Vector3& b);
+	void DrawLines(const std::vector<Math::Vector3>& points);
+	void DrawTetrahedronEdgeAsBBCurve(const Math::Vector3& c1, const Math::Vector3& c2, const size_t nodesperedge, const Math::Vector3* edge);
+	void DrawTetrahedron(const Math::Vector3& v0, const Math::Vector3& v1, const Math::Vector3& v2, 
+		const Math::Vector3& v3);
+	void DrawCapsule(const Math::Vector3& pos, float radius, float height, const Math::Matrix3& rot);
 
 	int DrawMesh(const RenderMesh& mesh);
-	int DrawMesh(const std::vector<Vector3>& vertices, const std::vector<Vector3>& normals, const std::vector<uint32>& indices, const Matrix4* model = nullptr);
-	int DrawMesh(const std::vector<Vector3>& vertices, const std::vector<Vector3>& normals, const std::vector<Vector3>& colors, 
-		const std::vector<uint32>& indices, const Matrix4* model = nullptr);
-	int DrawMesh(const std::vector<Vector3>& vertices, const std::vector<Vector3>& normals, const std::vector<uint32>& indices, 
-		const std::vector<Vector2>& uvs, Texture* tex, const Matrix4* model = nullptr);
+	int DrawMesh(const std::vector<Math::Vector3>& vertices, const std::vector<Math::Vector3>& normals, 
+		const std::vector<uint32>& indices, const Math::Matrix4* model = nullptr);
+	int DrawMesh(const std::vector<Math::Vector3>& vertices, const std::vector<Math::Vector3>& normals, 
+		const std::vector<Math::Vector3>& colors, const std::vector<uint32>& indices, const Math::Matrix4* model = nullptr);
+	int DrawMesh(const std::vector<Math::Vector3>& vertices, const std::vector<Math::Vector3>& normals, 
+		const std::vector<uint32>& indices, const std::vector<Math::Vector2>& uvs, Texture* tex, const Math::Matrix4* model = nullptr);
 
 	void SetColor(float r, float g, float b);
 
@@ -107,23 +109,23 @@ public:
 	bool IsShadowPass() const;
 	bool IsPickPass() const;
 
-	const Vector3& GetLightPos() const { return lightPos; }
-	void SetLightPos(const Vector3& v);
-	const Vector3& GetLightDir() const { return lightDir; }
-	void SetLightDir(const Vector3& v) { lightDir = v; }
+	const Math::Vector3& GetLightPos() const { return lightPos; }
+	void SetLightPos(const Math::Vector3& v);
+	const Math::Vector3& GetLightDir() const { return lightDir; }
+	void SetLightDir(const Math::Vector3& v) { lightDir = v; }
 	void SetFlipNormals(bool val);
 	void SetFlags(int val);
 	void ResetFlags();
 	int GetFlags() const;
 	void SetCulling(int val);
 
-	void GetScreenCoords(const Vector3& p, float& sx, float& sy);
+	void GetScreenCoords(const Math::Vector3& p, float& sx, float& sy);
 
 	void SetRenderMode(int val);
 
-	Vector3 ComputeMousePoint(int x, int y)
+	Math::Vector3 ComputeMousePoint(int x, int y)
 	{
-		Vector3 mousePt;
+		Math::Vector3 mousePt;
 		float width = w;
 		float height = h;
 		mousePt.Set(-1.f + 2.f * (float)x / width, 1.f - 2.f * (float)y / height, -1.f);
@@ -132,7 +134,7 @@ public:
 		mousePt.X() *= d * aspect;
 		mousePt.Y() *= d;
 
-		Matrix4 mat = mGLS.GetView();
+		Math::Matrix4 mat = mGLS.GetView();
 		mat = mat.GetInverseTransform();
 		mousePt = mat.Transform(mousePt);
 

@@ -4,7 +4,7 @@
 
 namespace Geometry
 {
-	struct Mesh;
+	class Mesh;
 
 	bool TestPointInTriangleVoronoiRegion(Math::Vector3 p, const Mesh& mesh, int tri);
 

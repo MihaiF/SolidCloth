@@ -2,6 +2,8 @@
 #include "ClothPatch.h"
 #include <Engine/Profiler.h>
 
+using namespace Math;
+
 namespace Physics
 {
 	void ClothModelPBD::SolveLinks(float h, float omega)
