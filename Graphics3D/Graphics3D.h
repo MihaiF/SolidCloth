@@ -43,7 +43,6 @@ public: // TODO: private
 	Camera camera;
 	int mouseX, mouseY;
 	int mouseButton;
-	bool mousePressed;
 
 	float fov, n, f;
 
@@ -65,7 +64,7 @@ public: // TODO: private
 	int mRenderMode;
 
 public:
-	Graphics3D() : mousePressed(false), fov(60), n(0.1f), f(10000), w(10), h(10) { }
+	Graphics3D() : mouseButton(-1), fov(60), n(0.1f), f(10000), w(10), h(10) { }
 	bool Init(HWND window);
 	void DeInit();
 	void Resize(int width, int height);

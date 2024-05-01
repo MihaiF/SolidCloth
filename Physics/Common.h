@@ -9,6 +9,7 @@
 
 namespace Geometry
 {
+	class Mesh;
 	class SDF;
 }
 
@@ -111,7 +112,7 @@ namespace Physics
 
 	struct CollisionMesh : Collidable
 	{
-		struct Geometry::Mesh* mesh; // this is a pointer!!!
+		Geometry::Mesh* mesh; // this is a pointer!!!
 		Math::Vector3 offset; // TODO: superseed by center
 		Geometry::AabbTree* tree = nullptr;
 		bool invalidate;

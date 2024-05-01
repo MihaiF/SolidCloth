@@ -184,7 +184,7 @@ public:
 
 			int x, y, z;
 			GetCoords(idx, x, y, z);
-			Vector3 org = GetPosAt(x, y, z);
+			Math::Vector3 org = GetPosAt(x, y, z);
 			float val2 = eval(org);
 
 			if (fabs(val1) > narrowBand && fabs(val2) > narrowBand)
@@ -205,7 +205,7 @@ public:
 				const float r = param;
 				float ux = std::max(r - val1, 0.f);
 				float uy = std::max(r - val2, 0.f);
-				Vector2 u(ux, uy);
+				Math::Vector2 u(ux, uy);
 				mSDF[Index(x, y, z)] = std::max(r, std::min(val1, val2)) - u.Length();
 			}
 			else if constexpr (op == CO_SMOOTH_UNION)

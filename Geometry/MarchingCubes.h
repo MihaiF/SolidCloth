@@ -39,8 +39,8 @@ inline void CreateIsoSurfaceParallel(Geometry::Mesh& mcMesh, EVAL&& eval,
 {
 	PROFILE_SCOPE("Marching cubes parallel");
 
-	Vector3 steps = box.GetExtent();
-	Vector3 invRes(1.f / numCellsPerSide[0], 1.f / numCellsPerSide[1], 1.f / numCellsPerSide[2]);
+	Math::Vector3 steps = box.GetExtent();
+	Math::Vector3 invRes(1.f / numCellsPerSide[0], 1.f / numCellsPerSide[1], 1.f / numCellsPerSide[2]);
 	steps.Scale(invRes);
 
 	static std::vector<TriangleBucket> triangles(numCellsPerSide[0] * numCellsPerSide[1] * numCellsPerSide[2]);
@@ -53,7 +53,7 @@ inline void CreateIsoSurfaceParallel(Geometry::Mesh& mcMesh, EVAL&& eval,
 			int w = cellNum / numCellsPerSide[0];
 			int y = w % numCellsPerSide[1];
 			int z = w / numCellsPerSide[1];
-			Vector3 org(x, y, z);
+			Math::Vector3 org(x, y, z);
 			org.Scale(steps);
 			org += box.min;
 
@@ -78,14 +78,14 @@ inline void CreateIsoSurfaceParallel(Geometry::Mesh& mcMesh, EVAL&& eval,
 			if (minAbsDist != FLT_MAX && minAbsDist > narrowBand)
 				continue;
 
-			cell.pos[0] = Vector3(org.x, org.y, org.z);
-			cell.pos[1] = Vector3(org.x + steps.x, org.y, org.z);
-			cell.pos[2] = Vector3(org.x + steps.x, org.y, org.z + steps.z);
-			cell.pos[3] = Vector3(org.x, org.y, org.z + steps.z);
-			cell.pos[4] = Vector3(org.x, org.y + steps.y, org.z);
-			cell.pos[5] = Vector3(org.x + steps.x, org.y + steps.y, org.z);
-			cell.pos[6] = Vector3(org.x + steps.x, org.y + steps.y, org.z + steps.z);
-			cell.pos[7] = Vector3(org.x, org.y + steps.y, org.z + steps.z);
+			cell.pos[0] = Math::Vector3(org.x, org.y, org.z);
+			cell.pos[1] = Math::Vector3(org.x + steps.x, org.y, org.z);
+			cell.pos[2] = Math::Vector3(org.x + steps.x, org.y, org.z + steps.z);
+			cell.pos[3] = Math::Vector3(org.x, org.y, org.z + steps.z);
+			cell.pos[4] = Math::Vector3(org.x, org.y + steps.y, org.z);
+			cell.pos[5] = Math::Vector3(org.x + steps.x, org.y + steps.y, org.z);
+			cell.pos[6] = Math::Vector3(org.x + steps.x, org.y + steps.y, org.z + steps.z);
+			cell.pos[7] = Math::Vector3(org.x, org.y + steps.y, org.z + steps.z);
 
 			int n = polygonise(cell, isoLevel, triangles[cellNum].arr.data());
 			triangles[cellNum].n = n;
@@ -93,7 +93,7 @@ inline void CreateIsoSurfaceParallel(Geometry::Mesh& mcMesh, EVAL&& eval,
 			// compute normals
 			for (int i = 0; i < n; i++)
 			{
-				Vector3 normal = grad(triangles[cellNum].arr[i]);
+				Math::Vector3 normal = grad(triangles[cellNum].arr[i]);
 				normal.Normalize();
 				triangles[cellNum].normals[i] = normal;
 			}
@@ -119,8 +119,8 @@ inline void CreateIsoSurfaceParallel(Geometry::Mesh& mcMesh, EVAL&& eval,
 		#pragma omp parallel for num_threads(3)
 		for (int cellNum = 0; cellNum < triangles.size(); cellNum++)
 		{
-			memcpy(mcMesh.vertices.data() + triangles[cellNum].off, triangles[cellNum].arr.data(), triangles[cellNum].n * sizeof(Vector3));
-			memcpy(mcMesh.normals.data() + triangles[cellNum].off, triangles[cellNum].normals.data(), triangles[cellNum].n * sizeof(Vector3));
+			memcpy(mcMesh.vertices.data() + triangles[cellNum].off, triangles[cellNum].arr.data(), triangles[cellNum].n * sizeof(Math::Vector3));
+			memcpy(mcMesh.normals.data() + triangles[cellNum].off, triangles[cellNum].normals.data(), triangles[cellNum].n * sizeof(Math::Vector3));
 		}
 	}
 }
