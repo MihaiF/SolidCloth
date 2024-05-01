@@ -27,7 +27,8 @@ void Profiler::Draw(Graphics2D* graphics, double stopTime)
 				continue;
 			memset(ident, ' ', MAX_IDENT);
 			ident[drawTimes[thread][i].level] = '\0';
-			graphics->DrawFormattedString(left + thread * graphics->w * 0.5f, top + 2 * (height + 15) + yOff, "%s %s: %.2fms", ident, it->first.c_str(), drawTimes[thread][i].total);
+			graphics->DrawFormattedString(left + thread * graphics->w * 0.5f, top + 2 * (height + 15) + yOff, "%s %s: %.2fms", 
+				ident, it->first.c_str(), drawTimes[thread][i].total);
 			yOff += 12;
 		}
 	}

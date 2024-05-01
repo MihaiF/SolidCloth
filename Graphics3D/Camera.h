@@ -19,10 +19,36 @@ public:
 		offset.Y() = 40.f;
 	}
 
-	Math::Matrix4 View()
+	Math::Vector3 GetPosition() const 
 	{
-		return Math::Matrix4::Translation(0, 0, -r) * Math::Matrix4::RotationX(RADIAN(ux)) * 
-			Math::Matrix4::RotationY(RADIAN(uy)) * Math::Matrix4::Translation(-offset.X(), -offset.Y(), -offset.Z());
+		float rux = RADIAN(ux);
+		float ruy = RADIAN(-uy);
+		float sux = sin(rux);
+		float cux = cos(rux);
+		float suy = sin(ruy);
+		float cuy = cos(ruy);
+		Math::Vector3 v = Math::Vector3(r * cux * suy, r * sux, r * cux * cuy) + offset;
+		return v;
+	}
+
+	Math::Vector3 GetViewDir() const
+	{
+		// FIXME		
+		float sux = sin(ux);
+		float cux = cos(ux);
+		float suy = sin(uy);
+		float cuy = cos(uy);
+		return -Math::Vector3(r * cux * suy, r * cuy, r * sux * suy);
+	}
+
+	void SetPosition(Math::Vector3 v)
+	{
+		// not implemented
+	}
+
+	Math::Matrix4 View() const
+	{
+		return Math::Matrix4::LookAt(GetPosition(), offset, Math::Vector3(0, 1, 0));
 	}
 
 	void Rotate(int dx, int dy)
@@ -31,9 +57,13 @@ public:
 		ux += 0.5f * dy;
 	}
 
-	void Translate(float deltaZ, float deltaX)
+	void Translate(float deltaZ, float deltaX, float deltaY)
 	{
 		r -= deltaZ * 4;
+		Math::Vector4 v(deltaX, deltaY, 0, 0);
+		Math::Matrix4 V = View();
+		Math::Vector4 v1 = V.GetInverseTransform() * v;
+		offset += v1;
 	}
 };
 
@@ -51,7 +81,7 @@ public:
 		pitch += RADIAN(0.25f * dy);
 	}
 
-	void Translate(float deltaZ, float deltaX)
+	void Translate(float deltaZ, float deltaX, float deltaY)
 	{
 		Math::Matrix4 mat = View();
 		Math::Vector3 viewDir(mat.col[0][2], mat.col[1][2], mat.col[2][2]);

@@ -36,6 +36,7 @@ namespace Geometry
 			float weight;
 			BoneWeight() : id(-1), weight(0) { }
 		};
+		
 		struct Weights
 		{
 			enum { MAX_WEIGHTS = 10 };

@@ -1,3 +1,4 @@
+#include "VoronoiRegions.h"
 #include "Mesh.h"
 #include "Engine/Utils.h"
 

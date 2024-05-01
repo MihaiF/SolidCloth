@@ -8,7 +8,7 @@ namespace Geometry
 {
 	void SplitNode(AabbTree* root, const Geometry::Mesh& mesh, int level, int maxLevel, int flags, float tol)
 	{
-		const int maxPrims = 100;
+		const int maxPrims = 40;
 		if (root->triangles.size() < maxPrims 
 			&& root->vertices.size() < maxPrims
 			&& root->edges.size() < maxPrims)

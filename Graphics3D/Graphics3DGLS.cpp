@@ -1,5 +1,4 @@
 #include <Engine/Base.h>
-#include <Engine/Engine.h>
 
 #include <Graphics3D/Graphics3D.h>
 #if (RENDERER3D == OPENGL) && !defined(FIXED_PIPELINE)
@@ -20,7 +19,7 @@ using namespace Math;
 
 bool Graphics3D::Init(HWND window)
 {
-	mousePressed = false;
+	mouseButton = -1;
 	lightPos.Set(0, 400, 800);
 	lightDir.Set(0, -1, 0);
 	if (!mGLS.Init())
@@ -197,32 +196,39 @@ void Graphics3D::DrawAxes()
 	mGLS.DrawAxes();
 }
 
-void Graphics3D::MouseDown(int x, int y)
+void Graphics3D::MouseDown(int x, int y, int mb)
 {
-	mousePressed = true;
+	mouseButton = mb;
 	mouseX = x;
 	mouseY = y;
 }
 
 void Graphics3D::MouseUp(int x, int y)
 {
-	mousePressed = false;
+	mouseButton = -1;
 }
 
 void Graphics3D::MouseMove(int x, int y)
 {
-	if (!mousePressed)
+	if (mouseButton < 0)
 		return;
 	int dx = x - mouseX;
 	int dy = y - mouseY;
 	mouseX = x;
 	mouseY = y;
-	camera.Rotate(dx, dy);
+	if (mouseButton == Engine::MOUSE_RIGHT)
+	{
+		camera.Rotate(dx, dy);
+	}
+	if (mouseButton == Engine::MOUSE_MIDDLE)
+	{
+		camera.Translate(0, -dx, dy);
+	}
 }
 
 void Graphics3D::MouseWheel(float delta)
 {
-	camera.Translate(delta, 0);
+	camera.Translate(delta, 0, 0);
 }
 
 void Graphics3D::DrawPlane(const Vector3& pos, float scale, Texture* tex)
@@ -387,6 +393,10 @@ void Graphics3D::SetRenderMode(int val)
 	else if (val == RM_PRIMITIVE_IDS)
 	{
 		mGLS.UsePickProgram();
+	}
+	else if (val == RM_WIREFRAME_GL)
+	{
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	}
 }
 

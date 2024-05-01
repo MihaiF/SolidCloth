@@ -51,6 +51,11 @@ namespace Math
 			return R;
 		}
 
+		static Matrix3T Euler(float yaw, float pitch, float roll)
+		{
+			return RotationZ(roll) * RotationX(pitch) * RotationY(yaw);
+		}
+
 		Matrix3T GetTranspose() const
 		{
 			Matrix3T ret;

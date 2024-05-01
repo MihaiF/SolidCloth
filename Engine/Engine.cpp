@@ -259,7 +259,7 @@ void Engine::UpdateAndDraw()
 	else if (isKeyDown('D'))
 		dx = speed;
 	if (dx || dz)
-		graphics3D->camera.Translate(dz, dx);
+		graphics3D->camera.Translate(dz, dx, 0);
 
 	// TODO: Update function
 	OnUpdate((float)(lastFrameTime - startTime));
@@ -336,7 +336,7 @@ void Engine::MouseDown(int x, int y, MouseButton mb)
 #if (RENDERER == OPENGL)
 	if ((mb == MOUSE_RIGHT || mb == MOUSE_MIDDLE) && is3D)
 	{
-		graphics3D->MouseDown(x, y);
+		graphics3D->MouseDown(x, y, mb);
 	}
 #endif
 	OnMouseDown(x, y, mb);

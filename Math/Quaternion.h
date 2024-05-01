@@ -16,6 +16,7 @@ namespace Math
 	public:
 		Quaternion() : s(1) { }
 		Quaternion(float qs, Vector3 qv) : s(qs), v(qv) { }
+		Quaternion(float x, float y, float z, float w) : s(w), v(x, y, z) { }
 		Quaternion(Vector4 a) : s(a[3]), v(a[0], a[1], a[2]) { }
 		Quaternion(const Quaternion& q) : s(q.s), v(q.v) { } // do I really need this copy constructor?
 		Quaternion& operator =(const Quaternion& q); // or this operator?

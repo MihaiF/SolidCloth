@@ -1,10 +1,10 @@
 #ifndef VECTOR3_H
 #define VECTOR3_H
 
-#include <math.h>
 #include <algorithm>
 
-namespace Math {
+namespace Math 
+{
 
 template<typename Real>
 struct Vector3T

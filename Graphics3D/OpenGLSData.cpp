@@ -1107,6 +1107,7 @@ void RenderMesh::SetColorData(const std::vector<Vector3>& colors)
 
 void RenderMesh::SetUVData(const std::vector<Vector2>& uvs)
 {
+	ASSERT(!uvs.empty());
 	glBindBuffer(GL_ARRAY_BUFFER, mUvVBO);
 	glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(Vector2), &uvs[0], GL_STATIC_DRAW);
 }

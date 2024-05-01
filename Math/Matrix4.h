@@ -8,7 +8,6 @@
 
 namespace Math
 {
-
 	struct Matrix4;
 	static Matrix4 operator *(const Matrix4& a, const Matrix4& b);
 
@@ -40,6 +39,27 @@ namespace Math
 			col[3] = Vector4(t.x, t.y, t.z, 1);
 		}
 
+		Matrix4(float m00, float m01, float m02, float m03, float m10, float m11, float m12, float m13,
+			float m20, float m21, float m22, float m23, float m30, float m31, float m32, float m33)
+		{
+			col[0][0] = m00;
+			col[0][1] = m10;
+			col[0][2] = m20;
+			col[0][3] = m30;
+			col[1][0] = m01;
+			col[1][1] = m11;
+			col[1][2] = m21;
+			col[1][3] = m31;
+			col[2][0] = m02;
+			col[2][1] = m12;
+			col[2][2] = m22;
+			col[2][3] = m32;
+			col[3][0] = m03;
+			col[3][1] = m13;
+			col[3][2] = m23;
+			col[3][3] = m33;
+		}
+
 		Matrix4(const Matrix3& mat, const Vector3& v)
 		{
 			col[0][0] = mat.m[0][0];
@@ -58,6 +78,34 @@ namespace Math
 			col[1][3] = 0;
 			col[2][3] = 0;
 			col[3][3] = 1;
+		}
+
+		Matrix4(const Matrix3& mat, const Vector3& v, const Vector3& s)
+		{
+			col[0][0] = mat.m[0][0] * s.x;
+			col[0][1] = mat.m[1][0] * s.x;
+			col[0][2] = mat.m[2][0] * s.x;
+			col[3][0] = v.X();
+			col[1][0] = mat.m[0][1] * s.y;
+			col[1][1] = mat.m[1][1] * s.y;
+			col[1][2] = mat.m[2][1] * s.y;
+			col[3][1] = v.Y();
+			col[2][0] = mat.m[0][2] * s.z;
+			col[2][1] = mat.m[1][2] * s.z;
+			col[2][2] = mat.m[2][2] * s.z;
+			col[3][2] = v.Z();
+			col[0][3] = 0;
+			col[1][3] = 0;
+			col[2][3] = 0;
+			col[3][3] = 1;
+		}
+
+		Matrix3 GetRotation() const
+		{
+			Matrix3 M(col[0][0], col[1][0], col[2][0],
+				col[0][1], col[1][1], col[2][1],
+				col[0][2], col[1][2], col[2][2]);
+			return M;
 		}
 
 		Vector3 GetTranslation() const
@@ -180,6 +228,13 @@ namespace Math
 			return T;
 		}
 
+		static Matrix4 Translation(Vector3 v)
+		{
+			Matrix4 T = Identity();
+			T.col[3] = Vector4(v);
+			return T;
+		}
+
 		static Matrix4 RotationX(float u)
 		{
 			float c = cosf(u);
@@ -226,12 +281,35 @@ namespace Math
 			return S;
 		}
 
+		static Matrix4 Scale(Vector3 s)
+		{
+			Matrix4 S;
+			S.col[0][0] = s.x;
+			S.col[1][1] = s.y;
+			S.col[2][2] = s.z;
+			S.col[3][3] = 1;
+			return S;
+		}
+
 		static Matrix4 Euler(float yaw, float pitch, float roll)
 		{
 			return RotationZ(roll) * RotationX(pitch) * RotationY(yaw);
 		}
 
 		static Matrix4 LookAt(const Vector3& eye, const Vector3& center, const Vector3& up);
+
+		Matrix4 operator +=(const Matrix4& mat)
+		{
+			for (int i = 0; i < 4; i++)
+			{
+				for (int j = 0; j < 4; j++)
+				{
+					this->col[i][j] += mat.col[i][j];
+				}
+			}
+
+			return *this;
+		}
 	};
 
 	inline Matrix4 operator *(const Matrix4& a, const Matrix4& b)
@@ -263,14 +341,27 @@ namespace Math
 		return c;
 	}
 
+	inline Matrix4 operator *(const Matrix4& a, float b)
+	{
+		Matrix4 c;
+		for (int i = 0; i < 4; i++) 
+		{
+			for (int k = 0; k < 4; k++)
+			{
+				c.col[k][i] = a.col[k][i] * b;
+			}
+		}
+		return c;
+	}
+
 	inline Matrix4 Matrix4::LookAt(const Vector3& eye, const Vector3& center, const Vector3& up)
 	{
 		Vector3 z = eye - center;
 		z.Normalize();
-		Vector3 x = z.Cross(up);
+		Vector3 x = up.Cross(z);
 		x.Normalize();
-		Vector3 y = x.Cross(z);
-		Matrix4 lookAt;// (x, y, z, Vector3());
+		Vector3 y = z.Cross(x);
+		Matrix4 lookAt = Matrix4::Identity();// (x, y, z, Vector3());
 		lookAt.col[0][0] = x.x;
 		lookAt.col[0][1] = y.x;
 		lookAt.col[0][2] = z.x;
@@ -280,9 +371,9 @@ namespace Math
 		lookAt.col[2][0] = x.z;
 		lookAt.col[2][1] = y.z;
 		lookAt.col[2][2] = z.z;
-		lookAt.col[3][0] = -x.Dot(eye);
-		lookAt.col[3][1] = -y.Dot(eye);
-		lookAt.col[3][2] = -z.Dot(eye);
+		lookAt.col[3][0] = -eye.Dot(x);
+		lookAt.col[3][1] = -eye.Dot(y);
+		lookAt.col[3][2] = -eye.Dot(z);
 		lookAt.col[3][3] = 1.f;
 		return lookAt;
 	}

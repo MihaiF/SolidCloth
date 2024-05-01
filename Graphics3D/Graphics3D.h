@@ -21,6 +21,7 @@ enum RenderMode
 	RM_SHADED,
 	RM_WIREFRAME_ON_SHADED,
 	RM_WIREFRAME,
+	RM_WIREFRAME_GL,
 	RM_PRIMITIVE_IDS,
 };
 
@@ -41,6 +42,7 @@ public: // TODO: private
 
 	Camera camera;
 	int mouseX, mouseY;
+	int mouseButton;
 	bool mousePressed;
 
 	float fov, n, f;
@@ -73,7 +75,7 @@ public:
 	void EndDraw();
 	
 	void DrawAxes();
-	void MouseDown(int x, int y);
+	void MouseDown(int x, int y, int mb);
 	void MouseMove(int x, int y);
 	void MouseUp(int x, int y);
 	void MouseWheel(float delta);
