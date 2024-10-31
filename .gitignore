@@ -5,3 +5,5 @@
 /cmake_build
 /vcpkg_installed
 /.vs
+/build
+/CMakeSettings.json
