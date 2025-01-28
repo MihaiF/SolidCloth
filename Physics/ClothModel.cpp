@@ -192,6 +192,11 @@ namespace Physics
 			mContacts[i].lambda = 0;
 			mContacts[i].lambdaF = 0;
 		}
+		for (size_t i = 0; i < mEdgeContacts.size(); i++)
+		{
+			mEdgeContacts[i].lambda = 0;
+			mEdgeContacts[i].lambdaF = 0;
+		}
 		for (size_t i = 0; i < mTriContacts.size(); i++)
 		{
 			mTriContacts[i].lambda = 0;

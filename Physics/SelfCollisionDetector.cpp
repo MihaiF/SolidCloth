@@ -9,6 +9,7 @@
 //#define USE_EL_TOPO
 
 using namespace Geometry;
+using namespace Math;
 
 namespace Physics
 {
@@ -26,11 +27,11 @@ namespace Physics
 		#pragma omp parallel for
 		for (int k = 0; k < (int)mEdgeEdgeCandidates.size(); k++)
 		{
-			int i = mEdgeEdgeCandidates[k].idx1;
-			int j = mEdgeEdgeCandidates[k].idx2;
+			int e1 = mEdgeEdgeCandidates[k].idx1;
+			int e2 = mEdgeEdgeCandidates[k].idx2;
 
-			int i1 = mModel->GetEdge(i).i1;
-			int i2 = mModel->GetEdge(i).i2;
+			int i1 = mModel->GetEdge(e1).i1;
+			int i2 = mModel->GetEdge(e1).i2;
 			const Vector3& x1 = mModel->GetParticle(i1).prev;
 			const Vector3& x2 = mModel->GetParticle(i2).prev;
 			const Vector3& y1 = mModel->GetParticle(i1).pos;
@@ -38,8 +39,8 @@ namespace Physics
 			Vector3 v1 = y1 - x1;
 			Vector3 v2 = y2 - x2;
 
-			int j1 = mModel->GetEdge(j).i1;
-			int j2 = mModel->GetEdge(j).i2;
+			int j1 = mModel->GetEdge(e2).i1;
+			int j2 = mModel->GetEdge(e2).i2;
 
 			// skip if edges are adjacent
 			if (i1 == j1 || i1 == j2 || i2 == j1 || i2 == j2)
@@ -52,7 +53,7 @@ namespace Physics
 			Vector3 v3 = y3 - x3;
 			Vector3 v4 = y4 - x4;
 
-			EdgeEdgeTest(x1, x2, x3, x4, v1, v2, v3, v4, i1, i2, j1, j2);
+			EdgeEdgeTest(x1, x2, x3, x4, v1, v2, v3, v4, i1, i2, j1, j2, e1, e2);
 		}
 	}
 
@@ -108,6 +109,9 @@ namespace Physics
 				{
 					int e1 = node->edges[i].idx;
 					int e2 = node->edges[j].idx;
+
+					if (e1 >= e2)
+						std::swap(e1, e2);
 
 					int i1 = mModel->GetEdge(e1).i1;
 					int i2 = mModel->GetEdge(e1).i2;
@@ -223,6 +227,8 @@ namespace Physics
 			c.w2 = coords.y;
 			c.w3 = coords.z;
 			c.normal = n;
+			c.isCCD = true;
+			c.side = SignedVolume(x4, x1, x2, x3);
 			#pragma omp critical
 			mModel->AddSelfTriangle(c);
 		}
@@ -484,7 +490,7 @@ namespace Physics
 
 	void SelfCollisionsDetector::EdgeEdgeTest(const Vector3& x1, const Vector3& x2, const Vector3& x3, const Vector3& x4,
 		const Vector3& v1, const Vector3& v2, const Vector3& v3, const Vector3& v4,
-		int i1, int i2, int i3, int i4)
+		int i1, int i2, int i3, int i4, int e1, int e2)
 	{
 		Vector3 n;
 		// discrete collision for previous positions
@@ -549,7 +555,15 @@ namespace Physics
 			c.i4 = i4;
 			c.w1 = s;
 			c.w2 = t;
-			c.normal = n;
+			
+			Vector3 c1, c2;
+			ClosestPtSegmSegm(x1, x2, x3, x4, s, t, c1, c2);
+			c.normal = c2 - c1;
+			c.normal.Normalize();
+			
+			c.isCCD = true;
+			c.side = SignedVolume(x1, x2, x3, x4);
+			c.hash = (e1 & 0xffff) | (e2 << 16);
 			#pragma omp critical
 			mModel->AddSelfEdge(c);
 		}

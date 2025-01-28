@@ -85,17 +85,19 @@ namespace Physics
 	{
 		const float invH = 1.0f / h;
 		float mu = mModel->GetFriction();
+		Vector3 delta;
 		for (size_t i = 0; i < mModel->GetNumContacts(); i++)
 		{
 			Contact& contact = mModel->GetContact(i);
 			Particle& p1 = mModel->GetParticle(contact.idx);
-			Vector3 delta = p1.pos - contact.point;
 #ifdef UPDATE_DEPTH
+			// not really mathematically accurate in the LCP formulation
+			delta = p1.pos - contact.point;
 			float len = delta.Dot(contact.normal);
 			if (len < mModel->GetThickness())
 				contact.depth = mModel->GetThickness() - len;
 #endif
-			Vector3 vrel = p1.vel; // TODO: contact velocity
+			Vector3 vrel = (p1.pos - p1.prev) * invH;
 			delta = contact.normal;
 			float vn = vrel.Dot(delta);
 			float err = -vn + baumgarte * contact.depth * invH;
@@ -106,7 +108,8 @@ namespace Physics
 				contact.lambda = 0;
 			float dLambda = contact.lambda - lambda0;
 			delta.Scale(dLambda);
-			p1.vel += delta;
+			p1.vel += delta; // TODO: all kernels should update the velocity too
+			p1.pos += h * delta;
 
 			// friction
 			Vector3 vt = vrel - vn * contact.normal;
@@ -123,6 +126,7 @@ namespace Physics
 				float dLambdaF = contact.lambdaF - lambdaF0;
 
 				p1.vel -= dLambdaF * tanDir;
+				p1.pos -= h * dLambdaF * tanDir;
 			}
 		}
 	}
@@ -386,7 +390,7 @@ namespace Physics
 			float side = SignedVolume(p4.pos, p1.pos, p2.pos, p3.pos);
 			if (contact.side * side <= 0)
 			{
-				len0 = mModel->GetSelfThreshold();
+				len0 = mModel->GetThickness() * 0.1f;
 			}
 			float dotn = n.Dot(contact.normal);
 			if (dotn < 0)
@@ -404,7 +408,7 @@ namespace Physics
 			float s = 1.f / invMass;
 			float err = len - len0; // negative!
 			contact.error = err;
-			float absErr = fabs(err);
+			float absErr = std::max(0.f, -err);
 			if (absErr > error)
 				error = absErr;
 			float dLambda = soften * s * err;
@@ -483,7 +487,7 @@ namespace Physics
 			}
 			if (side * contact.side < 0)
 			{
-				thickness = mModel->GetSelfThreshold();
+				thickness = mModel->GetThickness() * 0.1f;
 			}
 
 			float len = n.Dot(delta);
@@ -495,7 +499,7 @@ namespace Physics
 			
 			float err = len - thickness;
 			contact.error = err;
-			float absErr = fabs(err);
+			float absErr = std::max(0.f, -err);
 			if (absErr > ret.error)
 				ret.error = absErr;
 			float dLambda = -soften * s * err;

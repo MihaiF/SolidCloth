@@ -40,6 +40,8 @@ namespace Physics
 		contact.vel = vel;
 		contact.feature = tri;
 		contact.mesh = mesh;
+		float len = n.Dot(mParticles[idx].pos - p);
+		contact.depth = mThickness - len; // negative if penetrating
 		mContacts.push_back(contact);
 		return (int)(mContacts.size() - 1);
 	}

@@ -2,6 +2,7 @@
 
 #include <Math/Vector3.h>
 #include <vector>
+#include "ClothTypes.h"
 
 namespace Geometry
 {
@@ -12,7 +13,6 @@ namespace Physics
 {
 	struct Triangle;
 	struct Particle;
-	struct PrimitivePair;
 	struct SelfContact;
 	class ClothModel;
 
@@ -50,7 +50,7 @@ namespace Physics
 
 		void EdgeEdgeTest(const Math::Vector3& x1, const Math::Vector3& x2, const Math::Vector3& x3, const Math::Vector3& x4,
 			const Math::Vector3& v1, const Math::Vector3& v2, const Math::Vector3& v3, const Math::Vector3& v4,
-			int i1, int i2, int i3, int i4);
+			int i1, int i2, int i3, int i4, int e1, int e2);
 		bool EdgeEdgeCCD(const Math::Vector3& x1, const Math::Vector3& x2, const Math::Vector3& x3, const Math::Vector3& x4,
 			const Math::Vector3& v1, const Math::Vector3& v2, const Math::Vector3& v3, const Math::Vector3& v4,
 			int i1, int i2, int i3, int i4, Math::Vector3& normal, float& s, float& t);

@@ -97,7 +97,7 @@ namespace Physics
 				maxTv = tvs[i];
 		}
 
-		float radTol = mThickness + std::max(mTolerance, maxTv * 1.1f); // TODO: is this tolerance too big?
+		float radTol = mThickness + std::max(mTolerance, maxTv * 1.5f); // TODO: is this tolerance too big?
 		mClosestPoints.SetParams(collFlags);
 		const Mesh* clothMesh = mOwnerPatch->GetPrevMesh();
 
