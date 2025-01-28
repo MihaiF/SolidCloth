@@ -136,7 +136,7 @@ namespace Geometry
 			for (size_t i = 0; i < vertices.size(); i++)
 			{
 				float len = (vertices[i] - c).Length();
-				r = max(r, len);
+				r = std::max(r, len);
 			}
 		}
 		
@@ -246,11 +246,13 @@ namespace Geometry
 
 		bool IsBorderEdge(int e) const
 		{
-			return edges[e].t2 >= 0;
+			return edges[e].t2 < 0;
 		}
 
 		bool IsBorderVertex(int v) const
 		{
+			if (v < 0)
+				return false;
 			// incident to at least one border edg
 			for (int i = 0; i < edgeOneRings[v].size(); i++)
 			{

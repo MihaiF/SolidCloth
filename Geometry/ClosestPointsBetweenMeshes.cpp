@@ -582,10 +582,11 @@ namespace Geometry
 				info.edge1 = i;
 				//ClosestPointOnMeshToSegmentAcc(p, q, mesh, tree, true, -1, info); // FIXME
 				ClosestPointOnMeshToSegment(p, q, mesh, info, i);
-				CheckEdgeAdjacency(info, mesh, i1, i2, edge1);
-				
-				#pragma omp critical
-				mEdgeInfos.push_back(info);
+				if (!CheckEdgeAdjacency(info, mesh, i1, i2, edge1))
+				{
+					#pragma omp critical
+					mEdgeInfos.push_back(info);
+				}
 			}
 		}
 	}

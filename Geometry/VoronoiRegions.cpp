@@ -2,6 +2,8 @@
 #include "Mesh.h"
 #include "Engine/Utils.h"
 
+#include <cmath>
+
 using namespace Math;
 
 namespace Geometry
@@ -29,7 +31,7 @@ namespace Geometry
 		float dot2 = h2.Dot(p - v2);
 		float dot3 = h3.Dot(p - v3);
 
-		return (dot1 < 0) && (dot2 < 0) && (dot3 < 0);
+		return std::signbit(dot1) == std::signbit(dot2) == std::signbit(dot3);
 	}
 
 	bool TestPointInEdgeVoronoiRegion(Vector3 p, const Mesh& mesh, int eID, float eps)
@@ -84,6 +86,13 @@ namespace Geometry
 		ASSERT(mesh.edgeOneRings.size() > 0);
 		auto edgeOneRing = mesh.edgeOneRings[vID];
 		Vector3 v = mesh.vertices[vID];
+		
+		float side = 1;
+		Vector3 n = mesh.normals[vID];
+		if (n.Dot(p - v) < 0)
+			side = -1;
+		const float eps = 0.1f;
+
 		for (int i = 0; i < edgeOneRing.size(); i++)
 		{
 			const Mesh::Edge& edge = mesh.edges[edgeOneRing[i]];
@@ -94,7 +103,9 @@ namespace Geometry
 			if (edge.i2 != vID)
 				e.Flip();
 			float d = e.Dot(p - v);
-			if (d > 0)
+			if (side > 0 && d < -eps)
+				return false;
+			if (side < 0 && d > eps)
 				return false;
 		}
 		

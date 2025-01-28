@@ -324,7 +324,7 @@ namespace Geometry
 		Vector3 n = ab.Cross(ac);
 
 		float d = n.Dot(qp);
-		if (fabs(d) <= 1e-5f)
+		if (fabs(d) <= 1e-4f)
 			return false;
 
 		// this is the double sided version of the test

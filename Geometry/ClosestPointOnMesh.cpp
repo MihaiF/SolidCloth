@@ -499,10 +499,10 @@ Vector3 ComputeEdgeNormal(const Mesh& mesh, int e, float param)
 float ClosestPointOnMeshToSegment(Vector3 p, Vector3 q, const Mesh& mesh, ClosestEdgeToSegment& result, int e2)
 {
 	float distMin = FLT_MAX;
-	for (int i = 0; i < mesh.edges.size(); i++)
+	for (int e1 = e2 + 1; e1 < mesh.edges.size(); e1++)
 	{
-		int i1 = mesh.edges[i].i1;
-		int i2 = mesh.edges[i].i2;
+		int i1 = mesh.edges[e1].i1;
+		int i2 = mesh.edges[e1].i2;
 		if (e2 >= 0)
 		{
 			const Mesh::Edge& edge2 = mesh.edges[e2];
@@ -520,7 +520,7 @@ float ClosestPointOnMeshToSegment(Vector3 p, Vector3 q, const Mesh& mesh, Closes
 		if (dist != 0 && dist < distMin)
 		{
 			distMin = dist;
-			result.edge = i;
+			result.edge = e1;
 			result.distance = dist;
 			result.closestPtMesh = cpMesh;
 			result.closestPtSegment = cpSegm;
@@ -531,9 +531,10 @@ float ClosestPointOnMeshToSegment(Vector3 p, Vector3 q, const Mesh& mesh, Closes
 			if (e2 >= 0) // self
 				result.normal = cpMesh - cpSegm;
 			else
-				result.normal = ComputeEdgeNormal(mesh, i, paramMesh);
+				result.normal = ComputeEdgeNormal(mesh, e1, paramMesh);
 			result.normal.Normalize();
 			result.side = SignedVolume(p, q, a, b);
+			result.region = region;
 		}
 	}
 
