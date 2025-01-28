@@ -38,6 +38,10 @@ add_executable(ClothDemo WIN32 ${SOURCES} ${SOURCES_GEOM} ${SOURCES_CLOTH} Geome
 add_executable(ClothDemoAPI WIN32 ${SOURCES} ${SOURCES_GEOM} Geometry/Assets.cpp Demo/ClothDemoAPI.cpp Demo/DemoHostAPI.cpp)
 add_library(ClothLib SHARED ${SOURCES_CLOTH} ${SOURCES_GEOM} Demo/ClothAPI.cpp)
 
+if(MSVC)
+ target_compile_options(ClothLib PRIVATE "/MP")
+endif()
+
 target_include_directories(ClothDemo PRIVATE .)
 target_include_directories(ClothDemoAPI PRIVATE .)
 target_include_directories(ClothLib PRIVATE .)

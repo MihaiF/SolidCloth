@@ -38,7 +38,7 @@ namespace Physics
 		const Geometry::Mesh& GetMesh() const { return *mMesh; }
 		Geometry::Mesh& GetMesh() { return *mMesh; }
 		Geometry::Mesh* GetMeshPtr() { return mMesh.get(); }
-		Geometry::Mesh& GetPrevMesh() { return *mPrevMesh; }
+		Geometry::Mesh* GetPrevMesh() { return mPrevMesh.get(); }
 		const ClothModel& GetModel() const { return *mModel; }
 		ClothModel& GetModel() { return *mModel; }
 		ClothModel* GetModelPtr() { return mModel; }
@@ -46,6 +46,7 @@ namespace Physics
 		void SetPosition(const Math::Vector3& v) { mPosition = v; }
 		void SetMethod(MethodType val);
 		MethodType GetMethod() const { return mMethod; }
+		int GetNumSteps() const { return mNumSteps; }
 		void SetNumSteps(int val) { mNumSteps = val; }
 		bool IsQuadMesh() const { return mIsQuadMesh; }
 

@@ -150,6 +150,8 @@ namespace Physics
 		const float stretch = mModel->GetStretchStiffness();
 		const float shear = mModel->GetShearStiffness();
 		const float bend = mModel->GetBendStiffness();
+		const float incline = GetRandomReal01();
+		Printf("incline: %.20f\n", incline);
 		mMesh->vertices.resize(numParticles);
 		mMesh->uvs.resize(numParticles);
 		for (int j = 0, base = 0; j < divX; j++, base += divY)
@@ -178,7 +180,7 @@ namespace Physics
 				if (horizontal)
 					mModel->GetParticle(idx).pos = (Vector3(x, 0, startY + inc * i) + offset) * scale;
 				else
-					mModel->GetParticle(idx).pos = (Vector3(x, startY + inc * i, i * 0.5f) + offset) * scale;
+					mModel->GetParticle(idx).pos = (Vector3(x, startY + inc * i, i * incline) + offset) * scale;
 				mModel->GetParticle(idx).prev = mModel->GetParticle(idx).pos;
 				mModel->GetParticle(idx).vel.SetZero();
 				mModel->GetParticle(idx).invMass = 1;
@@ -265,7 +267,8 @@ namespace Physics
 	{
 		mModel->UpdateMesh(*mMesh, mIsQuadMesh, mPosition);
 		mMesh->ComputeNormals();
-		mPrevMesh->ComputeNormals();
+		if (mPrevMesh)
+			mPrevMesh->ComputeNormals();
 		return mModel->CheckSignal();
 	}
 

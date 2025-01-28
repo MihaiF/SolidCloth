@@ -49,7 +49,7 @@ namespace Geometry
 				{
 					const aiVector3D& srcN = mesh->mNormals[i];
 					Vector3 n(srcN.x, srcN.y, srcN.z);
-					n.Normalize();
+					n.NormalizeSafe();
 					myMesh.normals.push_back(n);
 				}
 

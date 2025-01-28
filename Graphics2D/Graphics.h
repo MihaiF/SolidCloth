@@ -40,7 +40,7 @@
 #include <GL/gl.h>
 #include <GL/glext.h>
 #include <GL/glu.h>
-#include <GL/glut.h>
+//#include <GL/glut.h>
 
 #define ANGLE(x) (x)
 #elif (RENDERER == OPENGLES)

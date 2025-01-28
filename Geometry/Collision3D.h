@@ -173,6 +173,8 @@ namespace Geometry
 		const Math::Vector3& v1, const Math::Vector3& v2, const Math::Vector3& v3, // the triangle
 		Math::Vector3& pos, Math::Vector3& normal, float& dist, Math::BarycentricCoords& coords);
 
+	float SignedVolume(Math::Vector3 a0, Math::Vector3 a1, Math::Vector3 a2, Math::Vector3 a3);
+
 } // namespace Geometry
 
 #endif // COLLISION3D_H

@@ -26,6 +26,11 @@ namespace Physics
 		, mFEM(false)
 		, mUseCL(false)
 		, mTree(nullptr)
+		, mSolveSDFContacts(false)
+		, mSelfShrink(.9f)
+		, mSelfSoften(.1f)
+		, mBendFreq(2)
+		, mSelfCollThreshold(0.003f)
 	{
 		mMouseSpring.active = false;
 	}
@@ -59,7 +64,8 @@ namespace Physics
 		tri.dv1 = d1.GetY();
 		tri.dv2 = d2.GetY();
 		tri.det = (tri.du1 * tri.dv2 - tri.du2 * tri.dv1);
-		tri.invDet = 1.f / tri.det;
+		if (tri.det != 0)
+			tri.invDet = 1.f / tri.det;
 
 		Vector3 dx1 = mParticles[i2].pos - mParticles[i1].pos;
 		Vector3 dx2 = mParticles[i3].pos - mParticles[i1].pos;
@@ -67,8 +73,10 @@ namespace Physics
 		Vector3 wv = tri.invDet * (-tri.du2 * dx1 + tri.du1 * dx2);
 		tri.lu0 = wu.Length();
 		tri.lv0 = wv.Length();
-		tri.su = 1.f / tri.lu0;
-		tri.sv = 1.f / tri.lv0;
+		if (tri.lu0 != 0)
+			tri.su = 1.f / tri.lu0;
+		if (tri.lv0 != 0)
+			tri.sv = 1.f / tri.lv0;
 		tri.dot = (wu * wv);
 
 		tri.area = 0.5f * tri.det;
@@ -103,7 +111,8 @@ namespace Physics
 			bc.i2 = e.i2;
 			bc.i3 = (uint32)mTriangles[e.t1].GetOppositeVertex(e.i1, e.i2);
 			bc.i4 = (uint32)mTriangles[e.t2].GetOppositeVertex(e.i1, e.i2);
-			bc.theta0 = acosf(n1 * n2);
+			float d = n1.Dot(n2);
+			bc.theta0 = acosf(std::min(1.f, d));
 			bc.l1 = l1;
 			bc.l2 = l2;
 			mBends.push_back(bc);

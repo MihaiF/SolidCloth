@@ -8,6 +8,12 @@ namespace Physics
 	class ClothModel;
 	class CollisionWorld;
 
+	struct ContactStats
+	{
+		int count = 0;
+		float error = 0;
+	};
+
 	class ClothCollisionHandler
 	{
 	public:
@@ -21,7 +27,7 @@ namespace Physics
 		float SolveEdgeContacts();
 		float SolveTriContacts();
 		float SolveSelfTrisPosition(float h);
-		float SolveSelfEdgesPosition(float h);
+		ContactStats SolveSelfEdgesPosition(float h);
 
 		void CheckContactsPosition();
 

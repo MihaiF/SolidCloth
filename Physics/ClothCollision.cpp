@@ -16,7 +16,10 @@ namespace Physics
 {
 	void ClothModel::DetectCollisions()
 	{
-		UpdateMesh(mOwnerPatch->GetPrevMesh(), mOwnerPatch->IsQuadMesh(), Vector3(), true); // TODO: update it earlier above
+		Mesh* prevMesh = mOwnerPatch->GetPrevMesh();
+		if (prevMesh != nullptr)
+			UpdateMesh(*prevMesh, mOwnerPatch->IsQuadMesh(), Vector3(), true); // TODO: update it earlier above
+			
 		// Compute the cloth own AABB tree
 		if (mCollFlags & (CF_VERTICES | CF_TRIANGLES | CF_SELF))
 		{
@@ -39,7 +42,8 @@ namespace Physics
 		{
 			mSelfTris.clear();
 			mSelfEdges.clear();
-			MeshCollisions(mOwnerPatch->GetPrevMesh(), mTree, CF_VERTICES | CF_EDGES);
+			if (prevMesh != nullptr)
+				MeshCollisions(*prevMesh, mTree, CF_VERTICES | CF_EDGES);
 		}
 	}
 
@@ -95,25 +99,22 @@ namespace Physics
 
 		float radTol = mThickness + std::max(mTolerance, maxTv * 1.1f); // TODO: is this tolerance too big?
 		mClosestPoints.SetParams(collFlags);
-		const auto& clothMesh = mOwnerPatch->GetPrevMesh();
-		//mClosestPoints.ClosestPoints(mOwnerPatch->GetMesh(), mesh, mTree, triangleTree, radTol, false);
-		if (&mesh == &clothMesh)
-			mClosestPoints.ClosestPoints(clothMesh, triangleTree, radTol);
+		const Mesh* clothMesh = mOwnerPatch->GetPrevMesh();
+
+		if (&mesh == clothMesh)
+			mClosestPoints.ClosestPoints(*clothMesh, triangleTree, radTol);
 		else
-			mClosestPoints.ClosestPoints(clothMesh, mesh, triangleTree, 2 * radTol, false);
+			mClosestPoints.ClosestPoints(*clothMesh, mesh, triangleTree, 2 * radTol, false);
 
 		for (int j = 0; j < mClosestPoints.mVertexInfos.size(); j++)
 		{
 			const auto& info = mClosestPoints.mVertexInfos[j];
 
-			// compute the threshold
-			float radTol = mThickness + std::max(mTolerance, tvs[info.vtx] * 1.1f);
-
 			float dist = info.distance;
 			if (dist < radTol && dist >= 0)
 			{
 				// this is the j-th cloth vertex
-				if (&mesh == &clothMesh)
+				if (&mesh == clothMesh)
 				{
 					SelfContact selfTri;
 					int tri = info.tri;
@@ -125,6 +126,7 @@ namespace Physics
 					selfTri.w1 = info.baryOnMesh.x;
 					selfTri.w2 = info.baryOnMesh.y;
 					selfTri.w3 = info.baryOnMesh.z;
+					selfTri.side = info.side;
 					AddSelfTriangle(selfTri);
 				}
 				else
@@ -140,13 +142,13 @@ namespace Physics
 
 			// compute the threshold
 			float tv = std::max(tvs[i1], std::max(tvs[i2], tvs[i3]));
-			float radTol = mThickness + std::max(mTolerance, tv * 1.1f);
+			float radTol = mThickness + std::max(mTolerance, tv * 1.2f);
 
 			float dist = mClosestPoints.mTriangleInfos[j].distance;
 			if (dist < radTol && dist >= 0)
 			{
 				// this is the j-th cloth triangle
-				if (&mesh == &clothMesh)
+				if (&mesh == clothMesh)
 				{
 					// do nothing
 				}
@@ -164,21 +166,14 @@ namespace Physics
 			int i1 = mEdges[e1].i1;
 			int i2 = mEdges[e1].i2;
 
-			// compute the threshold
-			float tv = std::max(tvs[i1], tvs[i2]);
-			float radTol = mThickness + std::max(mTolerance, tv * 1.1f);
-
 			float dist = info.distance;
 			if (dist < radTol && dist >= 0)
 			{
 				// this is the j-th cloth edge
-				if (&mesh == &clothMesh)
+				if (&mesh == clothMesh)
 				{
 					const Vector2& coords1 = info.coordsSegm;
 					const Vector2& coords2 = info.coordsMesh;
-					const float eps = 0.01f;
-					if ((coords1.x > eps && coords1.x < 1.f - eps && coords1.y > eps && coords1.y < 1.f - eps) &&
-						(coords2.x > eps && coords2.x < 1.f - eps && coords2.y > eps && coords2.y < 1.f - eps))
 					{
 						int e2 = info.edge;
 						const Mesh::Edge& edge2 = mesh.edges[e2];
@@ -189,7 +184,8 @@ namespace Physics
 						selfEdge.i4 = edge2.i2;
 						selfEdge.w1 = coords1.y;
 						selfEdge.w2 = coords2.y;
-						selfEdge.normal = -info.normal;
+						selfEdge.normal = info.normal;
+						selfEdge.side = info.side;
 						AddSelfEdge(selfEdge);
 					}
 				}
@@ -204,21 +200,22 @@ namespace Physics
 	{
 		// TODO: accelerate; triangle collisions
 		const float r = mThickness + mTolerance;
+		Vector3 v;
 		for (size_t i = 0; i < mParticles.size(); i++)
 		{
 			const Particle& particle = mParticles[i];
 			if (particle.pos.Y() - r <= walls.min.Y())
-				AddContact(i, Vector3(particle.pos.X(), walls.min.Y(), particle.pos.Z()), Vector3(0, 1, 0), Vector3::Zero());
+				AddContact(i, Vector3(particle.pos.X(), walls.min.Y(), particle.pos.Z()), Vector3(0, 1, 0), v);
 			//if (particle.pos.Y() + r >= WALL_TOP)
 			//	AddContact((ParticleIdx)i, Vector3(particle.pos.X(), WALL_TOP, particle.pos.Z()), Vector3(0, -1, 0));
 			if (particle.pos.X() - r <= walls.min.X())
-				AddContact(i, Vector3(walls.min.X(), particle.pos.Y(), particle.pos.Z()), Vector3(1, 0, 0), Vector3::Zero());
+				AddContact(i, Vector3(walls.min.X(), particle.pos.Y(), particle.pos.Z()), Vector3(1, 0, 0), v);
 			if (particle.pos.X() + r >= walls.max.X())
-				AddContact(i, Vector3(walls.max.X(), particle.pos.Y(), particle.pos.Z()), Vector3(-1, 0, 0), Vector3::Zero());
+				AddContact(i, Vector3(walls.max.X(), particle.pos.Y(), particle.pos.Z()), Vector3(-1, 0, 0), v);
 			if (particle.pos.Z() - r <= walls.min.Z())
-				AddContact(i, Vector3(particle.pos.X(), particle.pos.Y(), walls.min.Z()), Vector3(0, 0, 1), Vector3::Zero());
+				AddContact(i, Vector3(particle.pos.X(), particle.pos.Y(), walls.min.Z()), Vector3(0, 0, 1), v);
 			if (particle.pos.Z() + r >= walls.max.Z())
-				AddContact(i, Vector3(particle.pos.X(), particle.pos.Y(), walls.max.Z()), Vector3(0, 0, -1), Vector3::Zero());
+				AddContact(i, Vector3(particle.pos.X(), particle.pos.Y(), walls.max.Z()), Vector3(0, 0, -1), v);
 		}
 	}
 

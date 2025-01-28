@@ -1,10 +1,10 @@
 #include "ClothCollisionHandler.h"
 #include "Engine/Profiler.h"
 #include "ClothModel.h"
+#define UPDATE_CLOSEST_POINT
 
 using namespace Math;
-
-#define UPDATE_CLOSEST_POINT
+using namespace Geometry;
 
 namespace Physics
 {
@@ -150,9 +150,9 @@ namespace Physics
 				Vector3 a = contact.mesh->vertices[i1];
 				Vector3 b = contact.mesh->vertices[i2];
 				Vector3 c = contact.mesh->vertices[i3];
-				int region = Geometry::ClosestPtPointTriangle(p1.pos, a, b, c, cp, coords);
+				int region = ClosestPtPointTriangle(p1.pos, a, b, c, cp, coords);
 				contact.point = cp;
-				contact.normal = Geometry::ComputeTriangleNormal(*contact.mesh, tri, coords, false);
+				contact.normal = ComputeTriangleNormal(*contact.mesh, tri, coords, false);
 			}
 #endif
 			Vector3 delta = p1.pos - contact.point;
@@ -214,7 +214,7 @@ namespace Physics
 			// TODO: check if still in Voronoi region
 			Vector3 coords;
 			Vector3 p;
-			Geometry::ClosestPtPointTriangle(contact.point, p1.pos, p2.pos, p3.pos, p, coords);
+			ClosestPtPointTriangle(contact.point, p1.pos, p2.pos, p3.pos, p, coords);
 			// TODO: check if any barycentric coordinate is close to zero (on the border)
 			contact.w1 = coords.x;
 			contact.w2 = coords.y;
@@ -303,7 +303,7 @@ namespace Physics
 				int i2 = contact.mesh->edges[edge].i2;
 				Vector3 a = contact.mesh->vertices[i1];
 				Vector3 b = contact.mesh->vertices[i2];
-				Geometry::ClosestPtSegmSegm(a, b, p1.pos, p2.pos, s1, t, contact.point, p);
+				ClosestPtSegmSegm(a, b, p1.pos, p2.pos, s1, t, contact.point, p);
 				contact.w1 = 1.0f - t;
 				contact.w2 = t;
 			}
@@ -359,13 +359,15 @@ namespace Physics
 
 	float ClothCollisionHandler::SolveSelfTrisPosition(float h)
 	{
-		const float shrink = .9f;
+		const float shrink = mModel->GetSelfShrink();
 		const float soften = .9f;
-		float len0 = mModel->GetThickness() * shrink;
 		float mu = mModel->GetFriction();
 		float error = 0;
+		int count = 0;
 		for (size_t i = 0; i < mModel->GetNumSelfTris(); i++)
 		{
+			float len0 = mModel->GetThickness() * shrink;
+
 			SelfContact& contact = mModel->GetSelfTriangle(i);
 			Particle& p1 = mModel->GetParticle(contact.i1);
 			Particle& p2 = mModel->GetParticle(contact.i2);
@@ -373,19 +375,24 @@ namespace Physics
 			Particle& p4 = mModel->GetParticle(contact.i4);
 
 			Vector3 p, coords;
-			int region = Geometry::ClosestPtPointTriangle(p4.pos, p1.pos, p2.pos, p3.pos, p, coords);
+			int region = ClosestPtPointTriangle(p4.pos, p1.pos, p2.pos, p3.pos, p, coords);
 			contact.w1 = coords.x;
 			contact.w2 = coords.y;
 			contact.w3 = coords.z;
-			//Vector3 p = contact.w1 * p1.pos + contact.w2 * p2.pos + contact.w3 * p3.pos;
 			Vector3 delta = p4.pos - p;
-
-			Vector3 n = delta;
-			//if (region == Geometry::TR_FACE_INTERIOR || delta.Length() < 1e-5f)
-				n = (p2.pos - p1.pos).Cross(p3.pos - p1.pos);
+			
+			Vector3 n = (p2.pos - p1.pos).Cross(p3.pos - p1.pos);
 			n.Normalize();
-			if (n.Dot(contact.normal) < 0)
+			float side = SignedVolume(p4.pos, p1.pos, p2.pos, p3.pos);
+			if (contact.side * side <= 0)
+			{
+				len0 = mModel->GetSelfThreshold();
+			}
+			float dotn = n.Dot(contact.normal);
+			if (dotn < 0)
+			{
 				n = -n;
+			}
 
 			float len = n.Dot(delta);
 
@@ -396,6 +403,7 @@ namespace Physics
 				contact.w3 * contact.w3 * p3.invMass + p4.invMass;
 			float s = 1.f / invMass;
 			float err = len - len0; // negative!
+			contact.error = err;
 			float absErr = fabs(err);
 			if (absErr > error)
 				error = absErr;
@@ -431,43 +439,51 @@ namespace Physics
 			p2.pos += disp * (contact.w2 * p2.invMass);
 			p3.pos += disp * (contact.w3 * p3.invMass);
 			p4.pos -= disp * (p4.invMass);
+
+			count++;
 		}
 		return error;
 	}
 
 
-	float ClothCollisionHandler::SolveSelfEdgesPosition(float h)
+	ContactStats ClothCollisionHandler::SolveSelfEdgesPosition(float h)
 	{
-		float shrink = .9f;
-		float soften = .9f;
-		float thickness = mModel->GetThickness() * shrink;
+		float shrink = mModel->GetSelfShrink();
+		float soften = 0.9f;
 		float mu = mModel->GetFriction();
-		float error = 0;
+		ContactStats ret;
 		for (size_t i = 0; i < mModel->GetNumSelfEdges(); i++)
 		{
+			float thickness = mModel->GetThickness() * shrink;
+
 			SelfContact& contact = mModel->GetSelfEdge(i);
 			Particle& p1 = mModel->GetParticle(contact.i1);
 			Particle& p2 = mModel->GetParticle(contact.i2);
 			Particle& p3 = mModel->GetParticle(contact.i3);
 			Particle& p4 = mModel->GetParticle(contact.i4);
 
+			float side = SignedVolume(p1.pos, p2.pos, p3.pos, p4.pos);
+
 			Vector3 p, q;
 			float t1, t2;
-			Geometry::ClosestPtSegmSegm(p1.pos, p2.pos, p3.pos, p4.pos, t1, t2, p, q);
+			ClosestPtSegmSegm(p1.pos, p2.pos, p3.pos, p4.pos, t1, t2, p, q);
 			contact.w1 = 1 - t1;
 			contact.w2 = 1 - t2;
 
 			float omw1 = 1.f - contact.w1;
 			float omw2 = 1.f - contact.w2;
 
-			//Vector3 p = contact.w1 * p1.pos + omw1 * p2.pos;
-			//Vector3 q = contact.w2 * p3.pos + omw2 * p4.pos;
 			Vector3 delta = q - p;
 			Vector3 n = delta;
 			n.Normalize();
-			if (n.Dot(contact.normal) < 0)
+			float dotn = n.Dot(contact.normal);
+			if (dotn < 0.0f)
 			{
 				n = -n;
+			}
+			if (side * contact.side < 0)
+			{
+				thickness = mModel->GetSelfThreshold();
 			}
 
 			float len = n.Dot(delta);
@@ -478,9 +494,10 @@ namespace Physics
 			float s = 1.f / invMass;
 			
 			float err = len - thickness;
+			contact.error = err;
 			float absErr = fabs(err);
-			if (absErr > error)
-				error = absErr;
+			if (absErr > ret.error)
+				ret.error = absErr;
 			float dLambda = -soften * s * err;
 			contact.lambda += dLambda / h;
 
@@ -514,8 +531,10 @@ namespace Physics
 			p2.pos -= disp * (contact.w1 * p2.invMass);
 			p3.pos += disp * (omw2 * p3.invMass);
 			p4.pos += disp * (contact.w2 * p4.invMass);
+
+			ret.count++;
 		}
-		return error;
+		return ret;
 	}
 
 }

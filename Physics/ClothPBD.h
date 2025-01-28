@@ -14,10 +14,10 @@ namespace Physics
 		void SolveGS(float h);
 		void SolveJacobi(float h);
 		void SolveCR(float h, float alpha0);
-		void SolveLinks(float h, float omega);
+		float SolveLinks(float h, float omega);
 		void SolveLinksJacobi(float h, float omega);
 		void SolveTriangles(float h);
 		void SolveTrianglesEnergy(float h);
-		void SolveBends(float h);
+		float SolveBends(float h);
 	};
 }

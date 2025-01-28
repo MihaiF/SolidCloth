@@ -29,6 +29,16 @@ namespace Physics
 		SOLVER_EXPLICIT
 	};
 
+	struct SolverStats
+	{
+		int iterations = 0;
+		float linksError = 0;
+		float bendError = 0;
+		float selfVTError = 0;
+		float selfEEError = 0;
+		int selfEECount = 0;
+	};
+
 	class ClothModel
 	{
 	public:
@@ -121,12 +131,19 @@ namespace Physics
 		void SetArea(float val) { mArea = val; }
 		float GetUnit() const { return mUnit; }
 		void SetUnit(float val) { mUnit = val; }
+		float GetSelfThreshold() const { return mSelfCollThreshold; }
 		float GetNewmarkAlpha() const { return mAlpha; }
 		void SetNewmarkAlpha(float val) { mAlpha = val; }
 		SolverType GetSolver() const { return mSolver; }
 		void SetSolver(SolverType val) { mSolver = val; }
 		void SetCollisionFlags(int val) { mCollFlags = val; }
 		int GetCollisionFlags() const { return mCollFlags; }
+		float GetSelfShrink() const { return mSelfShrink; }
+		void SetSelfShrink(float val) { mSelfShrink = val; }
+		float GetSelfSoften() const { return mSelfSoften; }
+		void SetSelfSoften(float val) { mSelfSoften = val; }
+		float GetDragCoeff() const { return mDragCoeff; }
+		void SetDragCoeff(float val) { mDragCoeff = val; }
 
 		Geometry::AabbTree*& GetTree() { return mTree; }
 
@@ -176,12 +193,17 @@ namespace Physics
 		float mPoisson;
 		float mFriction;
 		float mArea;
+		float mSelfCollThreshold;
+		float mDragCoeff = 1.f;
 		int mNumIterations;
 		int mCollFlags;
 		SolverType mSolver;
 		// TODO: flags
 		bool mDihedral;
 		bool mFEM;
+		float mSelfShrink;
+		float mSelfSoften;
+		int mBendFreq;
 		// Newmark
 		float mAlpha;
 		// topology
@@ -225,6 +247,7 @@ namespace Physics
 
 	public: // TODO: move back out
 		std::vector<int> mMap;
+		SolverStats mStats;
 	};
 };
 

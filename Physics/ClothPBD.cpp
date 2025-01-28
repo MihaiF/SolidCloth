@@ -6,35 +6,47 @@ using namespace Math;
 
 namespace Physics
 {
-	void ClothModelPBD::SolveLinks(float h, float omega)
+	float ClothModelPBD::SolveLinks(float h, float omega)
 	{
 		const float h2 = h * h;
+		const float invH = 1.f / h;
 		const float k = h2 * mArea * mUnit;
+		float error = 0;
 		for (size_t i = 0; i < mLinks.size(); i++)
 		{
 			Link& link = mLinks[i];
 			Particle& p1 = mParticles[link.i1];
 			Particle& p2 = mParticles[link.i2];
 
+			if (p1.invMass + p2.invMass == 0)
+				continue;
+
 			float mu = 1.f / (p1.invMass + p2.invMass);
 
 			Vector3 delta = p1.pos - p2.pos;
 			const float len0 = link.len;
 			float len = delta.Length();
-			if (len == 0)
+			if (len == 0 || std::isnan(len) || std::isinf(len))
 				continue;
-			delta.Scale(1 / len);
+
 			float err = len - len0;
+			delta.Scale(1 / len);
 
 			float epsilon = len0 / (k * link.stiffness);
 			float s = 1.f / (1.f + mu * epsilon); 
 			float lambda = err * mu * s;
 			link.lambda += lambda;
 
-			delta.Scale(omega * lambda);
-			p1.pos -= delta * p1.invMass;
-			p2.pos += delta * p2.invMass;
+			link.error = s * err;
+			if (fabs(link.error) > error)
+				error = fabs(link.error);
+
+			Vector3 fc = omega * lambda * delta;
+			p1.pos -= fc * p1.invMass;
+			p2.pos += fc * p2.invMass;
 		}
+
+		return error;
 	}
 
 	void ClothModelPBD::SolveTriangles(float h)
@@ -95,9 +107,79 @@ namespace Physics
 		}
 	}
 
-	void ClothModelPBD::SolveBends(float h)
+	float EvaluateAngle(Vector3 x1, Vector3 x2, Vector3 x3, Vector3 x4, float& cosine)
 	{
-		PROFILE_SCOPE("SolveBendsPBD");
+		Vector3 x12 = x2 - x1; // the edge
+		float l = x12.Length();
+
+		Vector3 x13 = x3 - x1;
+		Vector3 n1 = cross(x12, x13);
+		float l1 = n1.Length();
+		Vector3 x14 = x4 - x1;
+		Vector3 n2 = cross(x14, x12);
+		float l2 = n2.Length();
+
+		if (l1 == 0 || l2 == 0)
+		{
+			cosine = 1;
+			return 0;
+		}
+
+		float il1 = 1.f / l1;
+		float il2 = 1.f / l2;
+
+		Vector3 n1n = il1 * n1;
+		Vector3 n2n = il2 * n2;
+
+		cosine = dot(n1n, n2n); // cosine of angle
+
+		cosine = min(1.f, max(-1.f, cosine));
+
+		return acosf(cosine);
+	}
+
+	float EvaluateGradient(Vector3 x1, Vector3 x2, Vector3 x3, Vector3 x4, float cosine, 
+		Vector3& q1, Vector3& q2, Vector3& q3, Vector3& q4)
+	{
+		Vector3 x12 = x2 - x1; // the edge
+		float l = x12.Length();
+
+		Vector3 x13 = x3 - x1;
+		Vector3 n1 = cross(x12, x13);
+		float l1 = n1.Length();
+		Vector3 x14 = x4 - x1;
+		Vector3 n2 = cross(x14, x12);
+		float l2 = n2.Length();
+
+		float h1 = l1 / l;
+		float h2 = l2 / l;
+		float he = 0.5f * (h1 + h2);
+
+		float il1 = 1.f / l1;
+		float il2 = 1.f / l2;
+
+		// TODO: get the from angle function
+		Vector3 n1n = il1 * n1;
+		Vector3 n2n = il2 * n2;
+
+		// project on each other's plane
+		Vector3 n1p = n1n - n2n * cosine;
+		Vector3 n2p = n2n - n1n * cosine;
+
+		float sine = sqrt(1 - cosine * cosine);
+
+		q3 = (il1 / sine / he) * cross(x12, n2p);
+		q4 = (-il2 / sine / he) * cross(x12, n1p);
+		q2 = (-il1 / sine / he) * cross(x13, n2p) + (il2 / sine / he) * cross(x14, n1p);
+		q1 = -q2 - q3 - q4;
+
+		return he;
+	}
+
+	float ClothModelPBD::SolveBends(float h)
+	{
+		//PROFILE_SCOPE("SolveBendsPBD");
+		float error = 0;
 		for (size_t i = 0; i < mBends.size(); i++)
 		{
 			BendConstraint& bc = mBends[i];
@@ -107,54 +189,38 @@ namespace Physics
 			const Vector3& x3 = mParticles[bc.i3].pos;
 			const Vector3& x4 = mParticles[bc.i4].pos;
 
-			Vector3 x12 = x2 - x1; // the edge
-			float l = x12.Length();
-
-			Vector3 x13 = x3 - x1;
-			Vector3 n1 = cross(x12, x13);
-			float l1 = n1.Length();
-			Vector3 x14 = x4 - x1;
-			Vector3 n2 = cross(x14, x12);
-			float l2 = n2.Length();
-
-			float h1 = l1 / l;
-			float h2 = l2 / l;
-			float he = 0.5f * (h1 + h2);
-
-			float il1 = 1.f / l1;
-			float il2 = 1.f / l2;
-
-			Vector3 n1n = il1 * n1;
-			Vector3 n2n = il2 * n2;
-
-			float d = dot(n1n, n2n); // cosine of angle
-
-			// project on each other's plane
-			Vector3 n1p = n1n - n2n * d;
-			Vector3 n2p = n2n - n1n * d;
-
-			d = min(1.f, max(-1.f, d));
-			if (fabs(d) == 1)
+			if (mParticles[bc.i1].invMass + mParticles[bc.i2].invMass + mParticles[bc.i3].invMass + mParticles[bc.i4].invMass == 0)
 				continue;
 
-			Vector3 q3 = il1 * cross(x12, n2p);
-			Vector3 q4 = -il2 * cross(x12, n1p);
-			Vector3 q2 = -il1 * cross(x13, n2p) + il2 * cross(x14, n1p);
-			Vector3 q1 = -q2 - q3 - q4;
+			float cosine;
+			float theta = EvaluateAngle(x1, x2, x3, x4, cosine);
+
+ 			if (fabs(cosine) >= 1 - 0.001f)
+				continue;
+
+			Vector3 q1, q2, q3, q4;
+			float he = EvaluateGradient(x1, x2, x3, x4, cosine, q1, q2, q3, q4);
+			//EvaluateGradientFD(x1, x2, x3, x4, theta, q1, q2, q3, q4);
 
 			float diag = mParticles[bc.i1].invMass * q1.LengthSquared() +
-				mParticles[bc.i2].invMass * q2.LengthSquared() + 
-				mParticles[bc.i3].invMass * q3.LengthSquared() + 
+				mParticles[bc.i2].invMass * q2.LengthSquared() +
+				mParticles[bc.i3].invMass * q3.LengthSquared() +
 				mParticles[bc.i4].invMass * q4.LengthSquared();
-			float sine = sqrt(1 - d * d);
-			float theta = acos(d); // TODO: sign!
-			float s = 0.004f * mBendStiff;
-			float lambda = -s * sine * theta / he / diag;
+			if (diag == 0)
+				continue;
+			float s = 0.0005f * mBendStiff;
+			
+			bc.error = s * theta;
+			if (fabs(bc.error) > error)
+				error = fabs(bc.error);
+
+			float lambda = -s * theta / he / diag;
 			mParticles[bc.i1].pos += lambda * mParticles[bc.i1].invMass * q1;
 			mParticles[bc.i2].pos += lambda * mParticles[bc.i2].invMass * q2;
 			mParticles[bc.i3].pos += lambda * mParticles[bc.i3].invMass * q3;
 			mParticles[bc.i4].pos += lambda * mParticles[bc.i4].invMass * q4;
 		}
+		return error;
 	}
 
 	inline void SolveFriction(Particle& p1, Contact& contact, float depth, float mu)
@@ -195,6 +261,7 @@ namespace Physics
 			if (mParticles[i].invMass == 0)
 				continue;
 			mParticles[i].vel += h * gravity * mUnit;
+			mParticles[i].vel *= mDragCoeff;
 			mParticles[i].pos += h * mParticles[i].vel;
 		}
 		// mouse spring
@@ -261,35 +328,44 @@ namespace Physics
 		auto collHandler = mOwnerPatch->GetCollisionHandler();
 		collHandler.Update();
 		
-		const float omega = 1.f;
-		float cv, ce, ct, sct, sce;
-		cv = ce = ct = sct = sce = 0;
-		for (int k = 0; true; ++k)
+		float cl, cb, cv, ce, ct, sct;
+		cl = cb = cv = ce = ct = sct = 0;
+		ContactStats sceStats;
+		int k = 0;
+		while (true)
 		{
 			if (!mFEM)
 			{
-				SolveLinks(h, omega);
+				cl = SolveLinks(h, 1.f);
 			}
 			else
 			{
 				SolveTriangles(h);
 			}
-			if (mDihedral)
-				SolveBends(h);
+			if (mDihedral && k % mBendFreq == 0)
+				cb = SolveBends(h);
 			
 			cv = collHandler.SolveContactsPosition(h);
 			ce = collHandler.SolveEdgeContacts();
 			ct = collHandler.SolveTriContacts();
 			sct = collHandler.SolveSelfTrisPosition(h);
-			sce = collHandler.SolveSelfEdgesPosition(h);
+			sceStats = collHandler.SolveSelfEdgesPosition(h);
+
+			k++;
 
 			const float eps = 0.01f;
-			if (k >= 50 && cv < eps && ce < eps && ct < eps && sct < eps && sce < eps)
-				break; // TODO: do something about the 50; add all constraints
+			if (cl < 0.05f && cb < 0.005f && sceStats.error < mSelfCollThreshold && sct < mSelfCollThreshold && cv < eps && ce < eps && ct < eps)
+				break;
 
 			if (k >= mNumIterations)
-				break;
+				break;			
 		}
+		mStats.iterations = k;
+		mStats.linksError = cl;
+		mStats.bendError = cb;
+		mStats.selfEEError = sceStats.error;
+		mStats.selfEECount = sceStats.count;
+		mStats.selfVTError = sct;
 	}
 
 	inline float ComputeErrorAndNormal(Link& link, const std::vector<Particle>& particles, float unit)

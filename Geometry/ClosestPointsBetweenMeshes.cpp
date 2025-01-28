@@ -470,42 +470,67 @@ namespace Geometry
 		return vtx == j1 || vtx == j2 || vtx == j3;
 	}
 
+	// returns false if the edges are not adjacent, so we can use the pair
 	bool CheckEdgeAdjacency(ClosestEdgeToSegment& info, const Mesh& mesh1, int i1, int i2, const Mesh::Edge& edge1)
 	{
+		//info.branch = 0;
 		const float eps = 1e-5f;
 		int e = info.edge;
+		if (e < 0)
+			return true;
+
 		const Mesh::Edge& edge2 = mesh1.edges[e];
 		// check if they are the same edge
 		//if (e == i) // never happens
 		//	mEdgeInfos[i].distance = FLT_MAX;
 		// check if they are adjacent
 		if (i1 == edge2.i1 || i1 == edge2.i2 || i2 == edge2.i1 || i2 == edge2.i2)
+		{
 			info.distance = FLT_MAX;
+			//info.branch = 1;
+			return true;
+		}
 		// check if they are part of the same triangle (but not incident)					
 		// TODO: the region is redundant
 		if ((info.region & ER_VERTEX_P1) != 0 || info.coordsSegm.x < eps)
 		{
 			// one point is i1
 			if (CheckSameTriangle(mesh1, i1, edge2.t1) || CheckSameTriangle(mesh1, i1, edge2.t2))
+			{
 				info.distance = FLT_MAX;
+				//info.branch = 2;
+				return true;
+			}
 		}
 		if ((info.region & ER_VERTEX_Q1) != 0 || info.coordsSegm.y < eps)
 		{
 			// one point is i2
 			if (CheckSameTriangle(mesh1, i2, edge2.t1) || CheckSameTriangle(mesh1, i2, edge2.t2))
+			{
 				info.distance = FLT_MAX;
+				//info.branch = 3;
+				return true;
+			}
 		}
 		if ((info.region & ER_VERTEX_P2) != 0 || info.coordsMesh.x < eps)
 		{
 			// one point is edge.i1
 			if (CheckSameTriangle(mesh1, edge2.i1, edge1.t1) || CheckSameTriangle(mesh1, edge2.i1, edge1.t2))
+			{
 				info.distance = FLT_MAX;
+				//info.branch = 4;
+				return true;
+			}
 		}
 		if ((info.region & ER_VERTEX_Q2) != 0 || info.coordsMesh.y < eps)
 		{
 			// one point is edge.i2
 			if (CheckSameTriangle(mesh1, edge2.i2, edge1.t1) || CheckSameTriangle(mesh1, edge2.i2, edge1.t2))
+			{
 				info.distance = FLT_MAX;
+				//info.branch = 5;
+				return true;
+			}
 		}
 		return false;
 	}
@@ -524,7 +549,7 @@ namespace Geometry
 			{
 				std::vector<ClosestTriangleToPoint> results;
 				// TODO: tree accelerated version
-				ClosestPointsOnMeshToPoint(mesh.vertices[i], mesh, results, radTol);
+				ClosestPointsOnMeshToPoint(mesh.vertices[i], mesh, results, radTol, i);
 				for (int j = 0; j < results.size(); j++)
 				{
 					results[j].vtx = i; // add the vertex index
@@ -555,44 +580,12 @@ namespace Geometry
 				const Vector3& q = mesh.vertices[i2];
 				ClosestEdgeToSegment info;
 				info.edge1 = i;
-				ClosestPointOnMeshToSegmentAcc(p, q, mesh, tree, -1, info);
+				//ClosestPointOnMeshToSegmentAcc(p, q, mesh, tree, true, -1, info); // FIXME
+				ClosestPointOnMeshToSegment(p, q, mesh, info, i);
 				CheckEdgeAdjacency(info, mesh, i1, i2, edge1);
 				
 				#pragma omp critical
 				mEdgeInfos.push_back(info);
-
-#ifdef TEST_BORDER_EDGES
-				if (mesh.IsBorderEdge(i))
-				{
-					for (int j = i + 1; j < mesh.edges.size(); j++)
-					{
-						if (mesh.IsBorderEdge(j))
-						{
-							const Mesh::Edge& edge2 = mesh.edges[j];
-							const Vector3& p2 = mesh.vertices[edge2.i1];
-							const Vector3& q2 = mesh.vertices[edge2.i2];
-							float paramSegm, paramMesh;
-							Vector3 cpSegm, cpMesh;
-							int region = ClosestPtSegmSegm(p, q, p2, q2, paramSegm, paramMesh, cpSegm, cpMesh);
-							Vector3 delta = cpSegm - cpMesh;
-							float dist = delta.Length();
-							info.distance = dist;
-							info.edge1 = i;
-							info.edge = j;
-							info.closestPtMesh = cpMesh;
-							info.closestPtSegment = cpSegm;
-							info.coordsSegm.x = 1.0f - paramSegm;
-							info.coordsSegm.y = paramSegm;
-							info.coordsMesh.x = 1.0f - paramMesh;
-							info.coordsMesh.y = paramMesh;
-							info.normal = (1.f / dist) * delta;
-							info.region = region;
-							#pragma omp critical
-							mEdgeInfos.push_back(info);
-						}
-					}
-				}
-#endif
 			}
 		}
 	}
@@ -689,7 +682,7 @@ namespace Geometry
 				const Vector3& q = mesh1.vertices[i2];
 				ClosestEdgeToSegment info;
 				info.edge1 = i;
-				ClosestPointOnMeshToSegmentAcc(p, q, mesh2, tree, -1, info);
+				ClosestPointOnMeshToSegmentAcc(p, q, mesh2, tree, false, -1, info);
 				if (&mesh1 == &mesh2)
 				{
 					CheckEdgeAdjacency(info, mesh1, i1, i2, edge1);

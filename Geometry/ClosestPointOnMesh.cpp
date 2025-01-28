@@ -139,9 +139,10 @@ float ClosestPointOnMeshToPoint(Vector3 p, const Mesh& mesh, ClosestTriangleToPo
 	return distMin;
 }
 
-void ClosestPointsOnMeshToPoint(Vector3 p, const Mesh& mesh, std::vector<ClosestTriangleToPoint>& results, float maxDist)
+void ClosestPointsOnMeshToPoint(Vector3 p, const Mesh& mesh, std::vector<ClosestTriangleToPoint>& results, float maxDist, int idx)
 {
 	//PROFILE_SCOPE("ClosestPointsOnMeshToPoint");
+	bool isBorder = mesh.IsBorderVertex(idx);
 
 	// brute force closest point
 	for (int i = 0; i < mesh.GetNumTriangles(); i++)
@@ -154,6 +155,7 @@ void ClosestPointsOnMeshToPoint(Vector3 p, const Mesh& mesh, std::vector<Closest
 		const Vector3& c = mesh.vertices[i2];
 		Vector3 coords, pt;
 		int region = ClosestPtPointTriangle(p, a, b, c, pt, coords);
+		bool inVR = idx >= 0 ? TestPointInVertexVoronoiRegion(pt, mesh, idx) : false;
 		Vector3 delta = p - pt;
 		float dist = delta.Length();
 		if (dist > maxDist)
@@ -163,14 +165,14 @@ void ClosestPointsOnMeshToPoint(Vector3 p, const Mesh& mesh, std::vector<Closest
 		ClosestTriangleToPoint result;
 		if (region == TR_FACE_INTERIOR)
 		{
-			if (!TestPointInTriangleVoronoiRegion(p, mesh, i))
+			if (!(inVR || TestPointInTriangleVoronoiRegion(p, mesh, i)))
 				continue;
 			result.regionType = 0;
 		}
 		if (region == TR_EDGE_AB)
 		{
 			int e = mesh.triangles[i].e[0];
-			if (!mesh.IsBorderEdge(e) && !TestPointInEdgeVoronoiRegion(p, mesh, e))
+			if (!mesh.IsBorderEdge(e) && !(inVR || TestPointInEdgeVoronoiRegion(p, mesh, e)))
 				continue;
 			result.regionType = 1;
 			result.feature = mesh.triangles[i].e[0];
@@ -178,7 +180,7 @@ void ClosestPointsOnMeshToPoint(Vector3 p, const Mesh& mesh, std::vector<Closest
 		if (region == TR_EDGE_BC)
 		{
 			int e = mesh.triangles[i].e[1];
-			if (!mesh.IsBorderEdge(e) && !TestPointInEdgeVoronoiRegion(p, mesh, e))
+			if (!mesh.IsBorderEdge(e) && !(inVR || TestPointInEdgeVoronoiRegion(p, mesh, e)))
 				continue;
 			result.regionType = 1;
 			result.feature = mesh.triangles[i].e[1];
@@ -186,28 +188,28 @@ void ClosestPointsOnMeshToPoint(Vector3 p, const Mesh& mesh, std::vector<Closest
 		if (region == TR_EDGE_AC)
 		{
 			int e = mesh.triangles[i].e[2];
-			if (!mesh.IsBorderEdge(e) && !TestPointInEdgeVoronoiRegion(p, mesh, e))
+			if (!mesh.IsBorderEdge(e) && !(inVR || TestPointInEdgeVoronoiRegion(p, mesh, e)))
 				continue;
 			result.regionType = 1;
 			result.feature = mesh.triangles[i].e[2];
 		}
 		if (region == TR_VERTEX_A)
 		{
-			if (!mesh.IsBorderVertex(i0) && !TestPointInVertexVoronoiRegion(p, mesh, i0))
+			if (!isBorder && !(inVR || TestPointInVertexVoronoiRegion(p, mesh, i0)))
 				continue;
 			result.regionType = 2;
 			result.feature = i0;
 		}
 		if (region == TR_VERTEX_B)
 		{
-			if (!mesh.IsBorderVertex(i1) && !TestPointInVertexVoronoiRegion(p, mesh, i1))
+			if (!isBorder && !(inVR || TestPointInVertexVoronoiRegion(p, mesh, i1)))
 				continue;
 			result.regionType = 2;
 			result.feature = i1;
 		}
 		if (region == TR_VERTEX_C)
 		{
-			if (!mesh.IsBorderVertex(i2) && !TestPointInVertexVoronoiRegion(p, mesh, i2))
+			if (!isBorder && !(inVR || TestPointInVertexVoronoiRegion(p, mesh, i2)))
 				continue;
 			result.regionType = 2;
 			result.feature = i2;
@@ -238,6 +240,7 @@ void ClosestPointsOnMeshToPoint(Vector3 p, const Mesh& mesh, std::vector<Closest
 		//else
 		result.normal = (1.f / dist) * delta;
 		result.region = region;
+		result.side = SignedVolume(p, a, b, c);
 		results.push_back(result);
 	}
 }
@@ -451,27 +454,27 @@ void ClosestPointOnMeshToTriangleRec(Vector3 a, Vector3 b, Vector3 c, const Mesh
 ClosestVertexToTriangle ClosestPointOnMeshToTriangleAcc(Vector3 a, Vector3 b, Vector3 c, const Mesh& mesh, const AabbTree* node, int seed)
 {
 	ClosestVertexToTriangle result;
-	if (seed >= 0)
-	{
-		Vector3 bary, cp;
-		int region = ClosestPtPointTriangle(mesh.vertices[seed], a, b, c, cp, bary);
-		Vector3 delta = cp - mesh.vertices[seed];
-		float dist = delta.Length();
+	//if (seed >= 0)
+	//{
+	//	Vector3 bary, cp;
+	//	int region = ClosestPtPointTriangle(mesh.vertices[seed], a, b, c, cp, bary);
+	//	Vector3 delta = cp - mesh.vertices[seed];
+	//	float dist = delta.Length();
 
-		// Test with the Voronoi region of the seed vertex, not that of the triangle
-		if (TestPointInVertexVoronoiRegion(cp, mesh, seed))
-		{
-			result.vertex = seed;
-			result.closestPtMesh = mesh.vertices[seed];
-			result.closestPtTri = cp;
-			result.baryCoords = bary;
-			//result.normal = mesh.normals[seed]; // use the vertex normal for now; TODO: other options
-			result.normal = (1.f / dist) * delta;
-			result.distance = dist;
-			result.region = region;
-			return result;
-		}
-	}
+	//	// Test with the Voronoi region of the seed vertex, not that of the triangle
+	//	if (TestPointInVertexVoronoiRegion(cp, mesh, seed))
+	//	{
+	//		result.vertex = seed;
+	//		result.closestPtMesh = mesh.vertices[seed];
+	//		result.closestPtTri = cp;
+	//		result.baryCoords = bary;
+	//		//result.normal = mesh.normals[seed]; // use the vertex normal for now; TODO: other options
+	//		result.normal = (1.f / dist) * delta;
+	//		result.distance = dist;
+	//		result.region = region;
+	//		return result;
+	//	}
+	//}
 	float minDist = FLT_MAX;
 	ClosestPointOnMeshToTriangleRec(a, b, c, mesh, node, minDist, result); // TODO: representative triangle alternative
 	return result;
@@ -493,20 +496,28 @@ Vector3 ComputeEdgeNormal(const Mesh& mesh, int e, float param)
 	return normal;
 }
 
-float ClosestPointOnMeshToSegment(Vector3 p, Vector3 q, const Mesh& mesh, ClosestEdgeToSegment& result)
+float ClosestPointOnMeshToSegment(Vector3 p, Vector3 q, const Mesh& mesh, ClosestEdgeToSegment& result, int e2)
 {
 	float distMin = FLT_MAX;
 	for (int i = 0; i < mesh.edges.size(); i++)
 	{
 		int i1 = mesh.edges[i].i1;
 		int i2 = mesh.edges[i].i2;
+		if (e2 >= 0)
+		{
+			const Mesh::Edge& edge2 = mesh.edges[e2];
+			if (i1 == edge2.i1 || i1 == edge2.i2 || i2 == edge2.i1 || i2 == edge2.i2)
+			{
+				continue;
+			}
+		}
 		Vector3 a = mesh.vertices[i1];
 		Vector3 b = mesh.vertices[i2];
 		float paramSegm, paramMesh;
 		Vector3 cpSegm, cpMesh;
-		Geometry::ClosestPtSegmSegm(p, q, a, b, paramSegm, paramMesh, cpSegm, cpMesh);
+		int region = Geometry::ClosestPtSegmSegm(p, q, a, b, paramSegm, paramMesh, cpSegm, cpMesh);
 		float dist = (cpSegm - cpMesh).Length();
-		if (dist < distMin)
+		if (dist != 0 && dist < distMin)
 		{
 			distMin = dist;
 			result.edge = i;
@@ -517,7 +528,12 @@ float ClosestPointOnMeshToSegment(Vector3 p, Vector3 q, const Mesh& mesh, Closes
 			result.coordsSegm.y = paramSegm;
 			result.coordsMesh.x = 1.0f - paramMesh;
 			result.coordsMesh.y = paramMesh;
-			result.normal = ComputeEdgeNormal(mesh, i, paramMesh);
+			if (e2 >= 0) // self
+				result.normal = cpMesh - cpSegm;
+			else
+				result.normal = ComputeEdgeNormal(mesh, i, paramMesh);
+			result.normal.Normalize();
+			result.side = SignedVolume(p, q, a, b);
 		}
 	}
 
@@ -542,8 +558,15 @@ float ClosestPointOnMeshToSegment(Vector3 p, Vector3 q, const Mesh& mesh, const 
 		Vector3 b = mesh.vertices[i2];
 		float paramSegm, paramMesh;
 		Vector3 cpSegm, cpMesh;
-		Geometry::ClosestPtSegmSegm(p, q, a, b, paramSegm, paramMesh, cpSegm, cpMesh);
+		int region = Geometry::ClosestPtSegmSegm(p, q, a, b, paramSegm, paramMesh, cpSegm, cpMesh);
 		float dist = (cpSegm - cpMesh).Length();
+		const float eps = 0.01f;
+		bool notInterior = region != ER_EDGE_INTERIOR || !(paramSegm > eps && paramSegm < 1.f - eps && paramMesh > eps && paramMesh < 1.f - eps);
+		if (notInterior)
+		{
+			//minDist = dist;
+			continue;
+		}
 		if (dist < distMin)
 		{
 			distMin = dist;
@@ -562,7 +585,7 @@ float ClosestPointOnMeshToSegment(Vector3 p, Vector3 q, const Mesh& mesh, const 
 	return distMin;
 }
 
-void ClosestPointOnMeshToSegmentEdgeRec(Vector3 p, Vector3 q, const Mesh& mesh, const AabbTree* edgeTree, float& minDist, ClosestEdgeToSegment& result)
+void ClosestPointOnMeshToSegmentEdgeRec(Vector3 p, Vector3 q, const Mesh& mesh, const AabbTree* edgeTree, bool useDelta, float& minDist, ClosestEdgeToSegment& result)
 {
 	ASSERT(edgeTree != nullptr);
 
@@ -579,7 +602,8 @@ void ClosestPointOnMeshToSegmentEdgeRec(Vector3 p, Vector3 q, const Mesh& mesh, 
 		float paramSegm, paramMesh;
 		Vector3 cpSegm, cpMesh;
 		int region = ClosestPtSegmSegm(p, q, a, b, paramSegm, paramMesh, cpSegm, cpMesh);
-		Vector3 delta = cpSegm - cpMesh;
+		const float eps = 0.001f;
+		Vector3 delta = cpMesh - cpSegm;
 		float dist = delta.Length();
 		if (dist == 0)
 			continue; // the point itself
@@ -594,8 +618,10 @@ void ClosestPointOnMeshToSegmentEdgeRec(Vector3 p, Vector3 q, const Mesh& mesh, 
 			result.coordsSegm.y = paramSegm;
 			result.coordsMesh.x = 1.0f - paramMesh;
 			result.coordsMesh.y = paramMesh;
-			//result.normal = ComputeEdgeNormal(mesh, i, paramMesh);
-			result.normal = (1.f / dist) * delta;
+			if (useDelta)
+				result.normal = (1.f / dist) * delta;
+			else
+				result.normal = ComputeEdgeNormal(mesh, i, paramMesh);
 			result.region = region;
 		}
 	}
@@ -615,75 +641,26 @@ void ClosestPointOnMeshToSegmentEdgeRec(Vector3 p, Vector3 q, const Mesh& mesh, 
 	{
 		// first look left
 		if (distLeft < minDist)
-			ClosestPointOnMeshToSegmentEdgeRec(p, q, mesh, edgeTree->left, minDist, result);
+			ClosestPointOnMeshToSegmentEdgeRec(p, q, mesh, edgeTree->left, useDelta, minDist, result);
 		// if still needed, look right
 		if (distRight < minDist)
-			ClosestPointOnMeshToSegmentEdgeRec(p, q, mesh, edgeTree->right, minDist, result);
+			ClosestPointOnMeshToSegmentEdgeRec(p, q, mesh, edgeTree->right, useDelta, minDist, result);
 	}
 	else
 	{
 		// first look right
 		if (distRight < minDist)
-			ClosestPointOnMeshToSegmentEdgeRec(p, q, mesh, edgeTree->right, minDist, result);
+			ClosestPointOnMeshToSegmentEdgeRec(p, q, mesh, edgeTree->right, useDelta, minDist, result);
 		// if still needed, look left
 		if (distLeft < minDist)
-			ClosestPointOnMeshToSegmentEdgeRec(p, q, mesh, edgeTree->left, minDist, result);
+			ClosestPointOnMeshToSegmentEdgeRec(p, q, mesh, edgeTree->left, useDelta, minDist, result);
 	}
 }
 
-float ClosestPointOnMeshToSegmentAcc(Vector3 p, Vector3 q, const Mesh& mesh, const AabbTree* tree, int seed, ClosestEdgeToSegment& result)
+float ClosestPointOnMeshToSegmentAcc(Vector3 p, Vector3 q, const Mesh& mesh, const AabbTree* tree, bool useDelta, int seed, ClosestEdgeToSegment& result)
 {
-	const float eps = 0.09f;
-
-	if (seed >= 0)
-	{
-		int i1 = mesh.edges[seed].i1;
-		int i2 = mesh.edges[seed].i2;
-		Vector3 a = mesh.vertices[i1];
-		Vector3 b = mesh.vertices[i2];
-		float paramSegm, paramMesh;
-		Vector3 cpSegm, cpMesh;
-		int region = Geometry::ClosestPtSegmSegm(p, q, a, b, paramSegm, paramMesh, cpSegm, cpMesh);
-		
-		// first check if we're not too close to one of the vertices on the mesh
-		bool inVR = true;
-		if (region != ER_EDGE_INTERIOR || paramMesh < eps || paramMesh > 1.f - eps) // TODO: replace the eps check with the dots below
-		{
-			inVR = false;
-		}
-		else
-		{
-			// now check if cpSegm is inside the Voronoi region of the mesh edge - only test with the endpoint planes
-			// curios, if we ever hit this after the previous test... probably not (but not expensive anyway)
-
-			// compute the edge direction (aligned with the first triangle)
-			Vector3 e = b - a;
-			e.Normalize();
-
-			float dot3 = e.Dot(cpSegm - a);
-			float dot4 = e.Dot(cpSegm - b);
-
-			if (dot3 < 0 || dot4 > 0)
-				inVR = false;
-		}
-
-		if (inVR)
-		{
-			float dist = (cpSegm - cpMesh).Length();
-			result.distance = dist;
-			result.edge = seed;
-			result.closestPtMesh = cpMesh;
-			result.coordsSegm.x = 1.0f - paramSegm;
-			result.coordsSegm.y = paramSegm;
-			result.coordsMesh.x = 1.0f - paramMesh;
-			result.coordsMesh.y = paramMesh;
-			result.normal = mesh.edges[seed].n; // use the edge pseudo-normal
-			return dist;
-		}
-	}
-
 	float minDist = FLT_MAX;
-	ClosestPointOnMeshToSegmentEdgeRec(p, q, mesh, tree, minDist, result);
+	ClosestPointOnMeshToSegmentEdgeRec(p, q, mesh, tree, useDelta, minDist, result);
 
 	return minDist;
 }

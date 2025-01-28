@@ -74,6 +74,7 @@ namespace Physics
 		float dLambda;
 		Math::Vector3 normal; // force direction
 		float depth;
+		float error;
 		//float omega; // relaxation factor
 		Constraint() : stiffness(1.f), lambda(0.f), depth(0)
 		{
@@ -123,6 +124,8 @@ namespace Physics
 		uint32 i1, i2, i3, i4;
 		float w1, w2, w3;
 		float lambdaF;
+		bool isCCD = false;
+		float side = FLT_MAX;
 	};
 
 	struct BendConstraint : Constraint

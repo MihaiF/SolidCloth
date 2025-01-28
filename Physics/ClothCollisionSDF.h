@@ -176,7 +176,7 @@ struct MeshSDF
 	float QuerySegment(Math::Vector3 a, Math::Vector3 b, Math::Vector3& closestPt, Math::Vector3& normal, Math::Vector2& coords, int& feature) const
 	{
 		Geometry::ClosestEdgeToSegment info;
-		float dist = ClosestPointOnMeshToSegmentAcc(a, b, mMesh, mTree, feature, info);
+		float dist = ClosestPointOnMeshToSegmentAcc(a, b, mMesh, mTree, false, feature, info);
 		closestPt = info.closestPtMesh;
 		normal = info.normal;
 		coords = info.coordsSegm;

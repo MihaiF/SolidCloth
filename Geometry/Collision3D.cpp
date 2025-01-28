@@ -136,7 +136,7 @@ namespace Geometry
 		bar.z = vc * denom;
 		bar.x = 1.f - bar.y - bar.z;
 		closestPt = a + ab * bar.y + ac * bar.z;
-		ASSERT(bar.x > 0 && bar.y > 0 && bar.z > 0);
+		ASSERT(bar.x >= 0 && bar.y >= 0 && bar.z >= 0);
 		return TR_FACE_INTERIOR;
 	}
 
@@ -295,7 +295,7 @@ namespace Geometry
 		return true;
 	}
 
-	float SignedVolume(const Vector3& a0, const Vector3& a1, const Vector3& a2, const Vector3& a3)
+	float SignedVolume(Vector3 a0, Vector3 a1, Vector3 a2, Vector3 a3)
 	{
 		return triple(a1 - a0, a2 - a0, a3 - a0);
 	}

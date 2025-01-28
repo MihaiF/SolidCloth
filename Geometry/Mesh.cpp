@@ -54,6 +54,8 @@ namespace Geometry
 		}
 		for (size_t i = 0; i < vertices.size(); i++)
 		{
+			if (normals[i].Length() == 0)
+				continue;
 			normals[i].Normalize();
 			if (flip)
 				normals[i].Flip();
@@ -68,7 +70,7 @@ namespace Geometry
 		edges.clear();
 
 		// build unique edges array
-		int numEdges = (int)indices.size() - 1;
+		int numEdges = (int)indices.size();
 		std::vector<Mesh::Edge> duplicates(numEdges);
 		ASSERT(triangles.size() > 0);
 		std::vector<bool> vtxAdded(vertices.size(), false);
@@ -76,7 +78,7 @@ namespace Geometry
 		{
 			// construct edge
 			int i1 = indices[i];
-			int i2 = indices[i + 1];
+			int i2 = -1;
 			if ((i + 1) % 3 == 0)
 			{
 				i2 = indices[i - 2];
@@ -84,6 +86,10 @@ namespace Geometry
 				tri.e[2] = (uint32)i;
 				tri.e[1] = (uint32)(i - 1);
 				tri.e[0] = (uint32)(i - 2);			
+			}
+			else
+			{
+				i2 = indices[i + 1];
 			}
 			
 			bool swapped = false;
