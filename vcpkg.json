@@ -1,0 +1,16 @@
+{
+  "dependencies": [
+    "freeimage",
+	{
+		"name": "imgui",
+		"features": [
+			"win32-binding",
+			"opengl3-binding"
+		]
+	},	
+	"glew",
+	"assimp",
+	"freetype",
+	"opengl"
+  ]
+}

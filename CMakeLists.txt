@@ -1,9 +1,12 @@
 cmake_minimum_required(VERSION 3.25)
 project(SolidCloth)
 
-#find_package(freeimage CONFIG REQUIRED)
-#find_package(imgui CONFIG REQUIRED)
-#find_package(GLEW REQUIRED)
+find_package(freeimage REQUIRED)
+find_package(imgui REQUIRED)
+find_package(GLEW REQUIRED)
+find_package(OpenGL REQUIRED)
+find_package(Freetype REQUIRED)
+find_package(assimp CONFIG REQUIRED)
 
 set(SOURCES_CLOTH 
 	Physics/ClothPatch.cpp
@@ -55,5 +58,6 @@ if(OpenMP_CXX_FOUND)
 endif()
 
 add_dependencies(ClothDemoAPI ClothLib)
-target_link_libraries(ClothDemoAPI PRIVATE ClothLib)
-#target_link_libraries(ClothDemo PRIVATE freeimage::FreeImage freeimage::FreeImagePlus)
+target_link_libraries(ClothDemoAPI PRIVATE ClothLib freeimage::FreeImage imgui::imgui OpenGL::GL GLEW::GLEW Freetype::Freetype assimp::assimp)
+target_link_libraries(ClothLib PRIVATE imgui::imgui)
+target_link_libraries(ClothDemo PRIVATE freeimage::FreeImage imgui::imgui OpenGL::GL GLEW::GLEW Freetype::Freetype assimp::assimp)
