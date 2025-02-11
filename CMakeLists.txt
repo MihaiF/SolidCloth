@@ -26,6 +26,7 @@ set(SOURCES_GEOM
 	Geometry/ClosestPointsBetweenMeshes.cpp
 	Geometry/VoronoiRegions.cpp
 	Geometry/Assets.cpp
+	Geometry/RaycastMesh.cpp
 	Math/Quaternion.cpp
 )
 
