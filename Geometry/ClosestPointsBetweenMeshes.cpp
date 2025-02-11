@@ -1,6 +1,6 @@
 #include "ClosestPointsBetweenMeshes.h"
 #include "AabbTree.h"
-#include "Engine/Profiler.h"
+//#include "Engine/Profiler.h"
 
 using namespace Math;
 
@@ -415,7 +415,7 @@ namespace Geometry
 
 	void MeshClosestPoints::ClosestPoints(const Mesh& mesh1, const Mesh& mesh2, AabbTree* root1, AabbTree* root2, float radTol, bool useSDF)
 	{
-		PROFILE_SCOPE("Closest points");
+		//PROFILE_SCOPE("Closest points");
 
 		// mesh1 is the "query" mesh and all the results (and collision flags) are relative to its features
 
@@ -424,7 +424,7 @@ namespace Geometry
 		mPotentialEdgeContacts.clear();
 		mTriTriCandidates.clear();
 		{
-			PROFILE_SCOPE("Test trees");
+			//PROFILE_SCOPE("Test trees");
 			TestTrees(mesh1, mesh2, root1, root2, radTol);
 		}
 
@@ -537,11 +537,11 @@ namespace Geometry
 
 	void MeshClosestPoints::ClosestPoints(const Mesh& mesh, const AabbTree* tree, float radTol)
 	{
-		PROFILE_SCOPE("Closest points self");
+		//PROFILE_SCOPE("Closest points self");
 
 		if (mCollFlags & CF_VERTICES)
 		{
-			PROFILE_SCOPE("Closest points self VT");
+			//PROFILE_SCOPE("Closest points self VT");
 			mVertexInfos.clear();
 
 			#pragma omp parallel for
@@ -567,7 +567,7 @@ namespace Geometry
 
 		if (mCollFlags & CF_EDGES)
 		{
-			PROFILE_SCOPE("Closest points self EE");
+			//PROFILE_SCOPE("Closest points self EE");
 			mEdgeInfos.clear();
 
 			#pragma omp parallel for
@@ -594,7 +594,7 @@ namespace Geometry
 
 	void MeshClosestPoints::ClosestPoints(const Mesh& mesh1, const Mesh& mesh2, const AabbTree* tree, float radTol, bool sign)
 	{
-		PROFILE_SCOPE("Closest points");
+		//PROFILE_SCOPE("Closest points");
 
 		if (mCollFlags & CF_VERTICES)
 		{

@@ -365,7 +365,7 @@ int polygonise(Cell& grid, float iso_lvl, Vector3* triangles)
 void CreateIsoSurface(Geometry::Mesh& mcMesh, std::function<float(int, int, int)> eval,
 	std::function<Vector3(Vector3)> grad, const Geometry::Aabb3& box, int numCellsPerSide[], float isoLevel, float narrowBand)
 {
-	PROFILE_SCOPE("Marching cubes");
+	//PROFILE_SCOPE("Marching cubes");
 
 	Vector3 steps = box.GetExtent();
 	Vector3 invRes(1.f / numCellsPerSide[0], 1.f / numCellsPerSide[1], 1.f / numCellsPerSide[2]);

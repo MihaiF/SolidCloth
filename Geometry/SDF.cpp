@@ -209,7 +209,7 @@ void SDF::Blur()
 
 void SDF::ComputeGradient()
 {
-	PROFILE_SCOPE("Compute SDF gradients");
+	//PROFILE_SCOPE("Compute SDF gradients");
 
 	mGrad.resize(mSDF.size());
 
@@ -257,7 +257,7 @@ void SDF::ComputeGradient()
 
 void SDF::ComputeGradientParallel(float narrowBand)
 {
-	PROFILE_SCOPE("SDF gradients parallel");
+	//PROFILE_SCOPE("SDF gradients parallel");
 
 	mGrad.resize(mSDF.size());
 	int count = numCellsPerSide[0] * numCellsPerSide[1] * numCellsPerSide[2];
@@ -317,7 +317,7 @@ void SDF::Combine(const SDF& other, CombineOp op)
 
 void SDF::Combine(std::function<float(Vector3 pos)> eval, CombineOp op)
 {
-	PROFILE_SCOPE("Combine SDF");
+	//PROFILE_SCOPE("Combine SDF");
 
 	for (int x = 0; x <= numCellsPerSide[0]; x++)
 	{

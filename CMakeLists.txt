@@ -25,6 +25,7 @@ set(SOURCES_GEOM
 	Geometry/ClosestPointOnMesh.cpp
 	Geometry/ClosestPointsBetweenMeshes.cpp
 	Geometry/VoronoiRegions.cpp
+	Geometry/Assets.cpp
 	Math/Quaternion.cpp
 )
 
@@ -61,3 +62,7 @@ add_dependencies(ClothDemoAPI ClothLib)
 target_link_libraries(ClothDemoAPI PRIVATE ClothLib freeimage::FreeImage imgui::imgui OpenGL::GL GLEW::GLEW Freetype::Freetype assimp::assimp)
 target_link_libraries(ClothLib PRIVATE imgui::imgui)
 target_link_libraries(ClothDemo PRIVATE freeimage::FreeImage imgui::imgui OpenGL::GL GLEW::GLEW Freetype::Freetype assimp::assimp)
+
+add_executable(queries Queries.cpp ${SOURCES_GEOM})
+target_include_directories(queries PRIVATE .)
+target_link_libraries(queries PRIVATE imgui::imgui assimp::assimp)

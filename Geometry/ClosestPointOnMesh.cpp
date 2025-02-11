@@ -4,7 +4,7 @@
 #include <Geometry/Mesh.h>
 #include <Geometry/AabbTree.h>
 #include <Geometry/VoronoiRegions.h>
-#include <Engine/Profiler.h>
+//#include <Engine/Profiler.h>
 #include <Engine/Utils.h>
 
 #include <omp.h>
@@ -16,7 +16,7 @@ namespace Geometry
 
 int ClosestVertexOnMeshToPoint(const Vector3& p, const Mesh& mesh)
 {
-	PROFILE_SCOPE("Closest pt-mesh vertex");
+	//PROFILE_SCOPE("Closest pt-mesh vertex");
 
 	// brute force closest point
 	float distMin = FLT_MAX;
@@ -127,7 +127,7 @@ void ClosestTriKernel(Vector3 p, const Mesh& mesh, int tri, float& distMin, Clos
 
 float ClosestPointOnMeshToPoint(Vector3 p, const Mesh& mesh, ClosestTriangleToPoint& result)
 {
-	PROFILE_SCOPE("Closest pt-mesh");
+	//PROFILE_SCOPE("Closest pt-mesh");
 
 	// brute force closest point
 	float distMin = 1e10f;
