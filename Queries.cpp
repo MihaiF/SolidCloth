@@ -28,12 +28,13 @@ private:
 
 void PointQueries(const Mesh& mesh)
 {
+	srand(time(0));
 	// generate some random points inside its AABB
 	std::vector<Vector3> randPoints;
 	randPoints.clear();
 	Aabb3 box = mesh.GetAabb();
 	box.Extrude(10.f);
-	for (int i = 0; i < 1000; i++)
+	for (int i = 0; i < 10000; i++)
 	{
 		Vector3 rnd(GetRandomReal01(), GetRandomReal01(), GetRandomReal01());
 		rnd.Scale(box.GetExtent());
