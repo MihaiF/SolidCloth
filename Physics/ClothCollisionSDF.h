@@ -147,35 +147,23 @@ struct GridSDF
 
 	float QueryTriangle(Math::Vector3 a, Math::Vector3 b, Math::Vector3 c, Math::Vector3& closestPt, Math::Vector3& normal, Math::Vector3& coords, int&) const
 	{
-		// find the initial guess for s_i (smallest distance)
-		float distA = mSDF.GetValue(a);
-		float distB = mSDF.GetValue(b);
-		float distC = mSDF.GetValue(c);
-		if (distA == FLT_MAX || distB == FLT_MAX || distC == FLT_MAX)
-			return FLT_MAX;
-
-		Math::Vector3 cp = a; // closest point on triangle
-		float dist = distA;
-		if (distB < dist)
-		{
-			cp = b;
-			dist = distB;
-		}
-		if (distC < dist)
-		{
-			cp = c;
-			//dist = distC;
-		}
+		// find the initial guess for s_i (centroid)
+		Math::Vector3 cp = 0.33f * (a + b + c);
 
 		// run iterative Frank-Wolfe algorithm
-		for (int i = 1; i < 10; i++)
+		float distOld = 0;
+		for (int i = 1; i < 100; i++)
 		{
 			// 1. find s by direct enumeration of a, b, c
-			dist = mSDF.GetValue(cp);
+			float dist = mSDF.GetValue(cp);
+			if (dist == FLT_MAX)
+				return FLT_MAX;
+
 			Math::Vector3 grad = mSDF.GetGrad(cp);
 			float dotA = a.Dot(grad);
 			float dotB = b.Dot(grad);
 			float dotC = c.Dot(grad);
+
 			float dot = dotA;
 			Math::Vector3 s = a;
 			if (dotB < dot)
@@ -188,10 +176,19 @@ struct GridSDF
 				dot = dotC;
 				s = c;
 			}
-			Printf("%d: dist: %.3f, dot: %.3f\n", i, dist, dot);
+
+			float rel = 0;
+			if (distOld > 0)
+			{
+				rel = fabs(distOld - dist) / distOld;
+				if (rel < 0.0001f)
+					break; // early out - convergence reached
+			}
+			distOld = dist;
+			//Printf("%d: dist: %.3f, dot, %.3f, rel %.3f\n", i, dist, dot, rel);
 
 			// 2. update closest point
-			float alpha = 2.f / (i + 2.9f);
+			float alpha = 2.f / (i + 2.f);
 			Math::Vector3 delta = s - cp;
 			cp += alpha * delta;
 		}
