@@ -141,15 +141,67 @@ struct GridSDF
 	float QuerySegment(Math::Vector3 a, Math::Vector3 b, Math::Vector3& closestPt, Math::Vector3& normal, Math::Vector2& coords, int&) const
 	{
 		// TODO: implement using Nvidia paper
-		ASSERT(false);
+		//ASSERT(false);
 		return 0;
 	}
 
 	float QueryTriangle(Math::Vector3 a, Math::Vector3 b, Math::Vector3 c, Math::Vector3& closestPt, Math::Vector3& normal, Math::Vector3& coords, int&) const
 	{
-		// TODO: implement using Nvidia paper
-		ASSERT(false);
-		return 0;
+		// find the initial guess for s_i (centroid)
+		Math::Vector3 cp = 0.33f * (a + b + c);
+
+		// run iterative Frank-Wolfe algorithm
+		float distOld = 0;
+		for (int i = 1; i < 100; i++)
+		{
+			// 1. find s by direct enumeration of a, b, c
+			float dist = mSDF.GetValue(cp);
+			if (dist == FLT_MAX)
+				return FLT_MAX;
+
+			Math::Vector3 grad = mSDF.GetGrad(cp);
+			float dotA = a.Dot(grad);
+			float dotB = b.Dot(grad);
+			float dotC = c.Dot(grad);
+
+			float dot = dotA;
+			Math::Vector3 s = a;
+			if (dotB < dot)
+			{
+				dot = dotB;
+				s = b;
+			}
+			if (dotC < dot)
+			{
+				dot = dotC;
+				s = c;
+			}
+
+			float rel = 0;
+			if (distOld > 0)
+			{
+				rel = fabs(distOld - dist) / distOld;
+				if (rel < 0.0001f)
+					break; // early out - convergence reached
+			}
+			distOld = dist;
+			//Printf("%d: dist: %.3f, dot, %.3f, rel %.3f\n", i, dist, dot, rel);
+
+			// 2. update closest point
+			float alpha = 2.f / (i + 2.f);
+			Math::Vector3 delta = s - cp;
+			cp += alpha * delta;
+		}
+
+		// return all the information
+		float val = mSDF.GetValue(cp);
+		Math::Vector3 grad = mSDF.GetGrad(cp);
+		grad.Normalize();
+		normal = grad;
+		closestPt = cp - val * grad;
+		coords = Geometry::Barycentric(a, b, c, cp);
+
+		return val;
 	}
 };
 

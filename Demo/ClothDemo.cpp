@@ -30,7 +30,7 @@ void ClothDemo::Create(int type)
 		Printf("Failed to load texture\n");
 
 	mDemoType = type;
-	mCloth.GetModel().SetCollisionFlags(CF_WALLS | CF_VERTICES | CF_TRIANGLES | CF_EDGES | CF_SELF);
+	mCloth.GetModel().SetCollisionFlags(CF_WALLS | CF_VERTICES | CF_TRIANGLES | CF_EDGES /*| CF_SELF*/);
 }
 
 void ClothDemo::Init()
