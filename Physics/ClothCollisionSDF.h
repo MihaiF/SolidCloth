@@ -138,11 +138,59 @@ struct GridSDF
 		return val;
 	}
 
-	float QuerySegment(Math::Vector3 a, Math::Vector3 b, Math::Vector3& closestPt, Math::Vector3& normal, Math::Vector2& coords, int&) const
+	// code below is implmented based on the paper
+	// Local Optimization for Robust Signed Distance Field Collision
+	// by Macklin et al. 2020
+
+	float QuerySegment(Math::Vector3 p, Math::Vector3 q, Math::Vector3& closestPt, Math::Vector3& normal, Math::Vector2& coords, int&) const
 	{
-		// TODO: implement using Nvidia paper
-		//ASSERT(false);
-		return 0;
+		const float phi = (1 + std::sqrt(5)) / 2;  // Golden ratio
+		const float resphi = 2 - phi;
+
+		// Initial points
+		float a = 0.f;
+		float b = 1.f;
+		float x1 = a + resphi;
+		float x2 = b - resphi;
+		Math::Vector3 p1 = x1 * p + (1 - x1) * q;
+		Math::Vector3 p2 = x2 * p + (1 - x2) * q;
+		float f1 = mSDF.GetValue(p1);
+		float f2 = mSDF.GetValue(p2);
+
+		while (fabs(b - a) > 1e-5f)
+		{
+			if (f1 < f2) { // Minimization
+				b = x2;
+				x2 = x1;
+				f2 = f1;
+				x1 = a + resphi * (b - a);
+				p1 = x1 * p + (1 - x1) * q;
+				f1 = mSDF.GetValue(p1);
+			}
+			else 
+			{
+				a = x1;
+				x1 = x2;
+				f1 = f2;
+				x2 = b - resphi * (b - a);
+				p2 = x2 * p + (1 - x2) * q;
+				f2 = mSDF.GetValue(p2);
+			}
+		}
+
+		// solution
+		float u = (a + b) / 2; // Approximate minimum location
+		Math::Vector3 cp = u * p + (1 - u) * q;
+
+		// return all the information
+		float val = mSDF.GetValue(cp);
+		Math::Vector3 grad = mSDF.GetGrad(cp);
+		grad.Normalize();
+		normal = grad;
+		closestPt = cp - val * grad;
+		coords.Set(u, 1 - u);
+
+		return val;
 	}
 
 	float QueryTriangle(Math::Vector3 a, Math::Vector3 b, Math::Vector3 c, Math::Vector3& closestPt, Math::Vector3& normal, Math::Vector3& coords, int&) const
